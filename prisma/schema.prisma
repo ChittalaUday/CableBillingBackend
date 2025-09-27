@@ -1,0 +1,326 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Primary: Supabase PostgreSQL
+// Fallback: SQLite (change provider to "sqlite" if needed)
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  username    String    @unique
+  password    String
+  firstName   String
+  lastName    String
+  phone       String?
+  avatar      String?
+  role        UserRole  @default(STAFF)
+  isActive    Boolean   @default(true)
+  isVerified  Boolean   @default(false)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  createdCustomers  Customer[]  @relation("CustomerCreatedBy")
+  updatedCustomers  Customer[]  @relation("CustomerUpdatedBy")
+  createdBills      Bill[]      @relation("BillCreatedBy")
+  handledComplaints Complaint[] @relation("ComplaintHandledBy")
+  createdReports    Report[]    @relation("ReportCreatedBy")
+  auditLogs         AuditLog[]  @relation("AuditLogUser")
+
+  @@map("users")
+}
+
+model Customer {
+  id               String         @id @default(cuid())
+  customerNumber   String         @unique
+  firstName        String
+  lastName         String
+  email            String?        @unique
+  phone            String         @unique
+  address          String
+  city             String
+  state            String
+  zipCode          String
+  connectionType   ConnectionType
+  packageType      PackageType
+  monthlyRate      Decimal        @db.Decimal(10, 2)
+  installationDate DateTime
+  lastBillDate     DateTime?
+  nextBillDate     DateTime?
+  status           CustomerStatus @default(ACTIVE)
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  createdBy        String
+  updatedBy        String?
+
+  // Relations
+  creator        User            @relation("CustomerCreatedBy", fields: [createdBy], references: [id])
+  updater        User?           @relation("CustomerUpdatedBy", fields: [updatedBy], references: [id])
+  bills          Bill[]          @relation("CustomerBills")
+  payments       Payment[]       @relation("CustomerPayments")
+  dueSettlements DueSettlement[] @relation("CustomerDueSettlements")
+  complaints     Complaint[]     @relation("CustomerComplaints")
+  transactions   Transaction[]   @relation("CustomerTransactions")
+
+  @@map("customers")
+}
+
+model Bill {
+  id              String     @id @default(cuid())
+  billNumber      String     @unique
+  customerId      String
+  billDate        DateTime
+  dueDate         DateTime
+  amount          Decimal    @db.Decimal(10, 2)
+  previousReading Int
+  currentReading  Int
+  unitsConsumed   Int
+  status          BillStatus @default(PENDING)
+  paidAt          DateTime?
+  paidAmount      Decimal?   @db.Decimal(10, 2)
+  notes           String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  createdBy       String
+
+  // Relations
+  customer       Customer        @relation("CustomerBills", fields: [customerId], references: [id])
+  creator        User            @relation("BillCreatedBy", fields: [createdBy], references: [id])
+  payments       Payment[]       @relation("BillPayments")
+  dueSettlements DueSettlement[] @relation("BillDueSettlements")
+
+  @@map("bills")
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  paymentNumber String        @unique
+  customerId    String
+  billId        String?
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod
+  paymentDate   DateTime
+  transactionId String?
+  status        PaymentStatus @default(COMPLETED)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  customer Customer @relation("CustomerPayments", fields: [customerId], references: [id])
+  bill     Bill?    @relation("BillPayments", fields: [billId], references: [id])
+
+  @@map("payments")
+}
+
+model DueSettlement {
+  id              String           @id @default(cuid())
+  customerId      String
+  billId          String
+  originalAmount  Decimal          @db.Decimal(10, 2)
+  settledAmount   Decimal          @db.Decimal(10, 2)
+  remainingAmount Decimal          @db.Decimal(10, 2)
+  settlementDate  DateTime
+  status          SettlementStatus @default(PARTIAL)
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  customer Customer @relation("CustomerDueSettlements", fields: [customerId], references: [id])
+  bill     Bill     @relation("BillDueSettlements", fields: [billId], references: [id])
+
+  @@map("due_settlements")
+}
+
+model Transaction {
+  id                String            @id @default(cuid())
+  transactionNumber String            @unique
+  customerId        String
+  type              TransactionType
+  amount            Decimal           @db.Decimal(10, 2)
+  description       String
+  transactionDate   DateTime
+  status            TransactionStatus @default(COMPLETED)
+  referenceId       String?
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  customer Customer @relation("CustomerTransactions", fields: [customerId], references: [id])
+
+  @@map("transactions")
+}
+
+model Complaint {
+  id              String            @id @default(cuid())
+  complaintNumber String            @unique
+  customerId      String
+  title           String
+  description     String
+  category        ComplaintCategory
+  priority        ComplaintPriority @default(MEDIUM)
+  status          ComplaintStatus   @default(OPEN)
+  assignedTo      String?
+  resolvedAt      DateTime?
+  resolution      String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  customer     Customer @relation("CustomerComplaints", fields: [customerId], references: [id])
+  assignedUser User?    @relation("ComplaintHandledBy", fields: [assignedTo], references: [id])
+
+  @@map("complaints")
+}
+
+model Report {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  type        ReportType
+  data        Json
+  generatedAt DateTime   @default(now())
+  createdBy   String
+
+  // Relations
+  creator User @relation("ReportCreatedBy", fields: [createdBy], references: [id])
+
+  @@map("reports")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  resource   String
+  resourceId String?
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  userAgent  String?
+  timestamp  DateTime @default(now())
+
+  // Relations
+  user User @relation("AuditLogUser", fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  MANAGER
+  STAFF
+  TECHNICIAN
+}
+
+enum ConnectionType {
+  CABLE_TV
+  INTERNET
+  PHONE
+  BUNDLE
+}
+
+enum PackageType {
+  BASIC
+  STANDARD
+  PREMIUM
+  ENTERPRISE
+}
+
+enum CustomerStatus {
+  ACTIVE
+  SUSPENDED
+  DISCONNECTED
+  PENDING
+}
+
+enum BillStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  BANK_TRANSFER
+  ONLINE
+  CHECK
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum SettlementStatus {
+  PARTIAL
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionType {
+  PAYMENT
+  REFUND
+  ADJUSTMENT
+  PENALTY
+  DISCOUNT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ComplaintCategory {
+  TECHNICAL
+  BILLING
+  SERVICE
+  INSTALLATION
+  EQUIPMENT
+  OTHER
+}
+
+enum ComplaintPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  ESCALATED
+}
+
+enum ReportType {
+  BILLING
+  CUSTOMER
+  REVENUE
+  COMPLAINTS
+  PERFORMANCE
+  AUDIT
+}
