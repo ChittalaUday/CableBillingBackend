@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "commonjs",
+    "module": "Node16",
     "lib": ["ES2022", "DOM"],
     "types": ["node"],
     "allowJs": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],
@@ -43,14 +43,8 @@
     "exactOptionalPropertyTypes": true,
     "noPropertyAccessFromIndexSignature": true
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "tests/**/*"
-  ],
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "tests/**/*"],
   "ts-node": {
     "require": ["tsconfig-paths/register"]
   }

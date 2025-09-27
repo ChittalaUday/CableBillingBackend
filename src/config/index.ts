@@ -41,6 +41,7 @@ declare global {
       SUPABASE_URL?: string;
       SUPABASE_ANON_KEY?: string;
       SUPABASE_SERVICE_ROLE_KEY?: string;
+      FRONTEND_URL?: string;
     }
   }
 }
@@ -103,6 +104,9 @@ interface Config {
     anonKey: string;
     serviceRoleKey: string;
   };
+  frontend: {
+    url: string;
+  };
 }
 
 const config: Config = {
@@ -157,6 +161,9 @@ const config: Config = {
   },
   cors: {
     origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
+  },
+  frontend: {
+    url: process.env.FRONTEND_URL || 'http://localhost:3000',
   },
 };
 

@@ -1,7 +1,19 @@
 import { PrismaClient } from '@prisma/client';
 import { seedUsers, clearUsers } from './users.seeder';
+import { seedCustomers, clearCustomers } from './customers.seeder';
+import { seedPlans } from './plans.seeder';
 
 const prisma = new PrismaClient();
+
+async function clearPlans() {
+  console.log('Clearing plans...');
+  try {
+    await prisma.plan.deleteMany();
+    console.log('Plans cleared successfully');
+  } catch (error) {
+    console.error('Error clearing plans:', error);
+  }
+}
 
 async function main(): Promise<void> {
   console.log('🌱 Starting database seeding...');
@@ -9,9 +21,16 @@ async function main(): Promise<void> {
   try {
     // Clear existing data (optional - comment out if you want to preserve existing data)
     // await clearUsers();
+    // await clearCustomers();
 
-    // Seed users
-    await seedUsers();
+    // Seed users first
+    // await seedUsers();
+
+    // // Seed customers
+    // await seedCustomers();
+
+    // Seed plans
+    await seedPlans();
 
     console.log('✅ Database seeding completed successfully!');
   } catch (error) {
@@ -30,14 +49,28 @@ async function runSeeder(): Promise<void> {
       console.log('🌱 Seeding users only...');
       await seedUsers();
       break;
+    case 'customers':
+      console.log('🌱 Seeding customers only...');
+      await seedCustomers();
+      break;
+    case 'plans':
+      console.log('🌱 Seeding plans only...');
+      await seedPlans();
+      break;
     case 'clear':
       console.log('🗑️ Clearing all data...');
+      await clearCustomers();
       await clearUsers();
+      await clearPlans();
       break;
     case 'reset':
       console.log('🔄 Resetting database (clear + seed)...');
+      await clearCustomers();
       await clearUsers();
+      await clearPlans();
       await seedUsers();
+      await seedCustomers();
+      await seedPlans();
       break;
     default:
       console.log('🌱 Running full seed...');

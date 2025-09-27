@@ -10,7 +10,7 @@ A production-ready TypeScript API for managing cable services, built with Expres
 - **Testing**: Comprehensive test suite with Jest
 - **Security**: Helmet, CORS, rate limiting, bcrypt password hashing
 - **Validation**: Request validation with Joi
-- **Logging**: Winston with daily log rotation
+- **Logging**: Winston with daily log rotation and Firebase integration
 - **File Upload**: Multer integration for file handling
 - **Type Safety**: Full TypeScript implementation
 
@@ -60,6 +60,20 @@ A production-ready TypeScript API for managing cable services, built with Expres
    npm run db:generate  # Generate Prisma client
    npm run db:push      # Push schema to database
    npm run db:seed      # Seed initial data (optional)
+   ```
+
+5. **Set up Firebase (optional)**
+
+   To enable Firebase logging:
+   - Create a Firebase project at https://console.firebase.google.com/
+   - Generate a service account key
+   - Add the key to your `.env` file:
+
+   ```env
+   FIREBASE_SERVICE_ACCOUNT_KEY="{\"type\":\"service_account\",...}"
+   # OR
+   FIREBASE_SERVICE_ACCOUNT_PATH="/path/to/serviceAccountKey.json"
+   FIREBASE_DATABASE_URL="https://your-project.firebaseio.com"
    ```
 
 ## 🏃‍♂️ Running the Application
@@ -165,6 +179,16 @@ Once the server is running, access the API documentation at:
 - Development: http://localhost:3000/api-docs
 - The API documentation is automatically generated from JSDoc comments
 
+### New Logging Endpoints
+
+The system now includes new endpoints for retrieving activity logs and database changes:
+
+- `GET /api/logs/activity` - Get activity logs (Manager and Admin only)
+- `GET /api/logs/database` - Get database changes (Admin only)
+- `GET /api/logs/activity/user/:userId` - Get activity logs for a specific user (Manager and Admin only)
+
+These endpoints require Firebase logging to be enabled and configured.
+
 ## 🔧 Development Tools
 
 ### Code Quality
@@ -212,6 +236,8 @@ npm run docker:run
 src/
 ├── config/           # Configuration files
 ├── database/         # Database configuration and seeds
+├── middleware/       # Express middleware
+├── modules/          # Feature modules (auth, users, customers, logs, etc.)
 ├── services/         # Business logic services
 ├── types/            # TypeScript type definitions
 ├── utils/            # Utility functions
@@ -248,6 +274,12 @@ PORT=3000
 # Supabase (Optional for future features)
 SUPABASE_URL="https://your_project.supabase.co"
 SUPABASE_ANON_KEY="your_anon_key"
+
+# Firebase Configuration (for activity logging)
+# Either provide the service account key as JSON or path to the key file
+FIREBASE_SERVICE_ACCOUNT_KEY=
+FIREBASE_SERVICE_ACCOUNT_PATH=
+FIREBASE_DATABASE_URL=
 ```
 
 ## 🚀 Deployment

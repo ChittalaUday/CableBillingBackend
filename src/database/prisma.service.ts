@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import config from '@/config';
+import { databaseChangesMiddleware } from '@/middleware/database-changes.middleware';
 
 class PrismaService extends PrismaClient {
   constructor() {
@@ -9,12 +10,15 @@ class PrismaService extends PrismaClient {
           url: config.database.url,
         },
       },
-      log: config.app.env === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      log: config.app.env === 'development' ? ['error', 'warn'] : ['error'],
     });
   }
 
   async onModuleInit(): Promise<void> {
     await this.$connect();
+
+    // Add database changes middleware
+    this.$use(databaseChangesMiddleware);
   }
 
   async onModuleDestroy(): Promise<void> {

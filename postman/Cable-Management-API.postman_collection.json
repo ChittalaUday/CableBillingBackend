@@ -1,0 +1,1303 @@
+{
+  "info": {
+    "name": "Cable Management System API",
+    "description": "Complete API collection for Cable Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "cable-management-api-v1",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "patch": 0
+    }
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customer_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customer_account_no",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customer_phone",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "plan_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🏥 Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "API Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api",
+              "host": ["{{base_url}}"],
+              "path": ["api"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const responseJson = pm.response.json();",
+                  "if (responseJson.success && responseJson.data.tokens) {",
+                  "    pm.environment.set('access_token', responseJson.data.tokens.accessToken);",
+                  "    pm.environment.set('refresh_token', responseJson.data.tokens.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"username\": \"johndoe\",\n  \"password\": \"SecurePass123!\",\n  \"confirmPassword\": \"SecurePass123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phone\": \"+1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const responseJson = pm.response.json();",
+                  "if (responseJson.success) {",
+                  "    pm.environment.set('access_token', responseJson.data.tokens.accessToken);",
+                  "    pm.environment.set('refresh_token', responseJson.data.tokens.refreshToken);",
+                  "    pm.environment.set('current_user_id', responseJson.data.user.id);",
+                  "    pm.environment.set('current_user_role', responseJson.data.user.role);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@cable.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login Manager",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"manager@cable.com\",\n  \"password\": \"manager123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login Staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"staff@cable.com\",\n  \"password\": \"staff123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Validate Token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/validate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "validate"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 User Management",
+      "item": [
+        {
+          "name": "Create User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["const responseJson = pm.response.json();", "if (responseJson.success && responseJson.data.id) {", "    pm.environment.set('created_user_id', responseJson.data.id);", "}"]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newstaff@cable.com\",\n  \"username\": \"newstaff\",\n  \"password\": \"StaffPass123!\",\n  \"confirmPassword\": \"StaffPass123!\",\n  \"firstName\": \"New\",\n  \"lastName\": \"Staff\",\n  \"phone\": \"+1234567999\",\n  \"role\": \"STAFF\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"]
+            }
+          }
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Users with Filters",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users?search=admin&role=ADMIN&isActive=true&sortBy=firstName&sortOrder=asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "admin"
+                },
+                {
+                  "key": "role",
+                  "value": "ADMIN"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "firstName"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{current_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{current_user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\",\n  \"phone\": \"+1234567888\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/{{current_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{current_user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"admin123\",\n  \"newPassword\": \"NewAdminPass123!\",\n  \"confirmPassword\": \"NewAdminPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/{{current_user_id}}/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{current_user_id}}", "change-password"]
+            }
+          }
+        },
+        {
+          "name": "Get User Statistics",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Toggle User Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{created_user_id}}/toggle-status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{created_user_id}}", "toggle-status"]
+            }
+          }
+        },
+        {
+          "name": "Verify User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{created_user_id}}/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{created_user_id}}", "verify"]
+            }
+          }
+        },
+        {
+          "name": "Delete User (Soft)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{created_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{created_user_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete User (Permanent)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{created_user_id}}/permanent",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{created_user_id}}", "permanent"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 Customer Management",
+      "item": [
+        {
+          "name": "Customer Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["const responseJson = pm.response.json();", "if (responseJson.success && responseJson.data.id) {", "    pm.environment.set('customer_id', responseJson.data.id);", "}"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNo\": \"{{customer_account_no}}\",\n  \"password\": \"customer123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/customers/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers", "login"]
+            }
+          }
+        },
+        {
+          "name": "Create Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const responseJson = pm.response.json();",
+                  "if (responseJson.success && responseJson.data.id) {",
+                  "    pm.environment.set('customer_id', responseJson.data.id);",
+                  "    pm.environment.set('customer_account_no', responseJson.data.accountNo);",
+                  "    pm.environment.set('customer_phone', responseJson.data.phone);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNo\": \"ACC001\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Customer\",\n  \"email\": \"john.customer@example.com\",\n  \"password\": \"CustomerPass123!\",\n  \"phone\": \"+1234567890\",\n  \"address\": \"123 Main St\",\n  \"city\": \"Anytown\",\n  \"state\": \"State\",\n  \"zipCode\": \"12345\",\n  \"connectionType\": \"CABLE_TV\",\n  \"packageType\": \"BASIC\",\n  \"monthlyRate\": 99.99,\n  \"installationDate\": \"2025-01-15T00:00:00.000Z\",\n  \"notes\": \"Test customer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/customers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers"]
+            }
+          }
+        },
+        {
+          "name": "Get All Customers",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/customers?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Customers with Filters",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/customers?search=John&status=ACTIVE&connectionType=CABLE_TV&sortBy=firstName&sortOrder=asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "John"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                },
+                {
+                  "key": "connectionType",
+                  "value": "CABLE_TV"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "firstName"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Customer Statistics",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/customers/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get Customer by Account Number",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/customers/account/{{customer_account_no}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers", "account", "{{customer_account_no}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Customer by Phone Number",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/customers/phone/{{customer_phone}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers", "phone", "{{customer_phone}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Customer by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/customers/{{customer_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers", "{{customer_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Customer by Phone Number",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Customer\",\n  \"email\": \"updated.customer@example.com\",\n  \"phone\": \"+1987654321\",\n  \"address\": \"456 New St\",\n  \"city\": \"Newtown\",\n  \"state\": \"State\",\n  \"zipCode\": \"54321\",\n  \"connectionType\": \"INTERNET\",\n  \"packageType\": \"PREMIUM\",\n  \"monthlyRate\": 149.99,\n  \"status\": \"ACTIVE\",\n  \"notes\": \"Updated customer information\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/customers/phone/{{customer_phone}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers", "phone", "{{customer_phone}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Customer by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Customer\",\n  \"email\": \"updated.customer@example.com\",\n  \"phone\": \"+1987654321\",\n  \"address\": \"456 New St\",\n  \"city\": \"Newtown\",\n  \"state\": \"State\",\n  \"zipCode\": \"54321\",\n  \"connectionType\": \"INTERNET\",\n  \"packageType\": \"PREMIUM\",\n  \"monthlyRate\": 149.99,\n  \"status\": \"ACTIVE\",\n  \"notes\": \"Updated customer information\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/customers/{{customer_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers", "{{customer_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Change Customer Password",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"customer123\",\n  \"newPassword\": \"NewCustomerPass123!\",\n  \"confirmPassword\": \"NewCustomerPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/customers/{{customer_id}}/password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers", "{{customer_id}}", "password"]
+            }
+          }
+        },
+        {
+          "name": "Delete Customer",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/customers/{{customer_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customers", "{{customer_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📝 Logs Management",
+      "item": [
+        {
+          "name": "Get Activity Logs",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/logs/activity?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "logs", "activity"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Database Changes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/logs/database?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "logs", "database"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Activity Logs",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/logs/activity/user/{{current_user_id}}?limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "logs", "activity", "user", "{{current_user_id}}"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Plans Management",
+      "item": [
+        {
+          "name": "Create Plan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["const responseJson = pm.response.json();", "if (responseJson.success && responseJson.data.id) {", "    pm.environment.set('plan_id', responseJson.data.id);", "}"]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Basic Cable Plan\",\n  \"description\": \"Basic cable package with 50 channels\",\n  \"type\": \"BASIC\",\n  \"price\": 29.99,\n  \"channels\": [\"Channel 1\", \"Channel 2\", \"Channel 3\"],\n  \"packageDetails\": {\n    \"hdChannels\": 10,\n    \"sdChannels\": 40\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/plans",
+              "host": ["{{base_url}}"],
+              "path": ["api", "plans"]
+            }
+          }
+        },
+        {
+          "name": "Get All Plans",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/plans?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "plans"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Plans with Filters",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/plans?search=Premium&type=PREMIUM&isActive=true&sortBy=price&sortOrder=asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "plans"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Premium"
+                },
+                {
+                  "key": "type",
+                  "value": "PREMIUM"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "price"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Plan by ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/plans/{{plan_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "plans", "{{plan_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Plan",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Basic Cable Plan\",\n  \"description\": \"Updated basic cable package with 60 channels\",\n  \"type\": \"BASIC\",\n  \"price\": 34.99,\n  \"channels\": [\"Channel 1\", \"Channel 2\", \"Channel 3\", \"Channel 4\"],\n  \"packageDetails\": {\n    \"hdChannels\": 15,\n    \"sdChannels\": 45\n  },\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/plans/{{plan_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "plans", "{{plan_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Plan Statistics",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/plans/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "plans", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Delete Plan",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/plans/{{plan_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "plans", "{{plan_id}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -5,12 +5,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Primary: Supabase PostgreSQL
-// Fallback: SQLite (change provider to "sqlite" if needed)
+// Primary: PostgreSQL for production, SQLite for development
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DIRECT_URL")
 }
 
 model User {
@@ -22,7 +20,7 @@ model User {
   lastName    String
   phone       String?
   avatar      String?
-  role        UserRole  @default(STAFF)
+  role        String    @default("STAFF")
   isActive    Boolean   @default(true)
   isVerified  Boolean   @default(false)
   lastLoginAt DateTime?
@@ -41,57 +39,65 @@ model User {
 }
 
 model Customer {
-  id               String         @id @default(cuid())
-  customerNumber   String         @unique
+  id               String    @id @default(cuid())
+  accountNo        String    @unique
+  customerNumber   String    @unique
+  lcoCustomerId    String? // LCO Customer ID
+  serialNumber     String? // Equipment serial number
+  vcNumber         String? // VC Number
   firstName        String
   lastName         String
-  email            String?        @unique
-  phone            String         @unique
+  email            String?   @unique
+  password         String? // Customer login password (for local auth)
+  supabaseUserId   String?   @unique // Supabase Auth User ID
+  phone            String    @unique
   address          String
   city             String
   state            String
   zipCode          String
-  connectionType   ConnectionType
-  packageType      PackageType
-  monthlyRate      Decimal        @db.Decimal(10, 2)
+  connectionType   String
+  packageType      String
+  monthlyRate      Float
   installationDate DateTime
   lastBillDate     DateTime?
   nextBillDate     DateTime?
-  status           CustomerStatus @default(ACTIVE)
+  status           String    @default("ACTIVE")
+  msoShareDue      Float?
   notes            String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   createdBy        String
   updatedBy        String?
 
   // Relations
-  creator        User            @relation("CustomerCreatedBy", fields: [createdBy], references: [id])
-  updater        User?           @relation("CustomerUpdatedBy", fields: [updatedBy], references: [id])
-  bills          Bill[]          @relation("CustomerBills")
-  payments       Payment[]       @relation("CustomerPayments")
-  dueSettlements DueSettlement[] @relation("CustomerDueSettlements")
-  complaints     Complaint[]     @relation("CustomerComplaints")
-  transactions   Transaction[]   @relation("CustomerTransactions")
+  creator        User                   @relation("CustomerCreatedBy", fields: [createdBy], references: [id])
+  updater        User?                  @relation("CustomerUpdatedBy", fields: [updatedBy], references: [id])
+  bills          Bill[]                 @relation("CustomerBills")
+  payments       Payment[]              @relation("CustomerPayments")
+  dueSettlements DueSettlement[]        @relation("CustomerDueSettlements")
+  complaints     Complaint[]            @relation("CustomerComplaints")
+  transactions   Transaction[]          @relation("CustomerTransactions")
+  subscriptions  CustomerSubscription[] @relation("CustomerSubscriptions")
 
   @@map("customers")
 }
 
 model Bill {
-  id              String     @id @default(cuid())
-  billNumber      String     @unique
+  id              String    @id @default(cuid())
+  billNumber      String    @unique
   customerId      String
   billDate        DateTime
   dueDate         DateTime
-  amount          Decimal    @db.Decimal(10, 2)
+  amount          Float
   previousReading Int
   currentReading  Int
   unitsConsumed   Int
-  status          BillStatus @default(PENDING)
+  status          String    @default("PENDING")
   paidAt          DateTime?
-  paidAmount      Decimal?   @db.Decimal(10, 2)
+  paidAmount      Float?
   notes           String?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   createdBy       String
 
   // Relations
@@ -104,18 +110,18 @@ model Bill {
 }
 
 model Payment {
-  id            String        @id @default(cuid())
-  paymentNumber String        @unique
+  id            String   @id @default(cuid())
+  paymentNumber String   @unique
   customerId    String
   billId        String?
-  amount        Decimal       @db.Decimal(10, 2)
-  paymentMethod PaymentMethod
+  amount        Float
+  paymentMethod String
   paymentDate   DateTime
   transactionId String?
-  status        PaymentStatus @default(COMPLETED)
+  status        String   @default("COMPLETED")
   notes         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
   customer Customer @relation("CustomerPayments", fields: [customerId], references: [id])
@@ -125,17 +131,17 @@ model Payment {
 }
 
 model DueSettlement {
-  id              String           @id @default(cuid())
+  id              String   @id @default(cuid())
   customerId      String
   billId          String
-  originalAmount  Decimal          @db.Decimal(10, 2)
-  settledAmount   Decimal          @db.Decimal(10, 2)
-  remainingAmount Decimal          @db.Decimal(10, 2)
+  originalAmount  Float
+  settledAmount   Float
+  remainingAmount Float
   settlementDate  DateTime
-  status          SettlementStatus @default(PARTIAL)
+  status          String   @default("PARTIAL")
   notes           String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Relations
   customer Customer @relation("CustomerDueSettlements", fields: [customerId], references: [id])
@@ -145,18 +151,18 @@ model DueSettlement {
 }
 
 model Transaction {
-  id                String            @id @default(cuid())
-  transactionNumber String            @unique
+  id                String   @id @default(cuid())
+  transactionNumber String   @unique
   customerId        String
-  type              TransactionType
-  amount            Decimal           @db.Decimal(10, 2)
+  type              String
+  amount            Float
   description       String
   transactionDate   DateTime
-  status            TransactionStatus @default(COMPLETED)
+  status            String   @default("COMPLETED")
   referenceId       String?
   notes             String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
   customer Customer @relation("CustomerTransactions", fields: [customerId], references: [id])
@@ -165,19 +171,19 @@ model Transaction {
 }
 
 model Complaint {
-  id              String            @id @default(cuid())
-  complaintNumber String            @unique
+  id              String    @id @default(cuid())
+  complaintNumber String    @unique
   customerId      String
   title           String
   description     String
-  category        ComplaintCategory
-  priority        ComplaintPriority @default(MEDIUM)
-  status          ComplaintStatus   @default(OPEN)
+  category        String
+  priority        String    @default("MEDIUM")
+  status          String    @default("OPEN")
   assignedTo      String?
   resolvedAt      DateTime?
   resolution      String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   // Relations
   customer     Customer @relation("CustomerComplaints", fields: [customerId], references: [id])
@@ -187,12 +193,12 @@ model Complaint {
 }
 
 model Report {
-  id          String     @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   description String?
-  type        ReportType
-  data        Json
-  generatedAt DateTime   @default(now())
+  type        String
+  data        String
+  generatedAt DateTime @default(now())
   createdBy   String
 
   // Relations
@@ -207,8 +213,8 @@ model AuditLog {
   action     String
   resource   String
   resourceId String?
-  oldValues  Json?
-  newValues  Json?
+  oldValues  String?
+  newValues  String?
   ipAddress  String?
   userAgent  String?
   timestamp  DateTime @default(now())
@@ -219,108 +225,47 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-// Enums
-enum UserRole {
-  ADMIN
-  MANAGER
-  STAFF
-  TECHNICIAN
+// New models for subscription plans and customer subscriptions
+model Plan {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  description    String?
+  type           String   @default("BASIC")
+  price          Float
+  channels       String?
+  packageDetails String?
+  months         Int      @default(1)
+  isPriority     Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  subscriptions CustomerSubscription[] @relation("PlanSubscriptions")
+
+  @@map("plans")
 }
 
-enum ConnectionType {
-  CABLE_TV
-  INTERNET
-  PHONE
-  BUNDLE
+model CustomerSubscription {
+  id              String    @id @default(cuid())
+  customerId      String
+  planId          String
+  status          String    @default("ACTIVE")
+  startDate       DateTime  @default(now())
+  endDate         DateTime?
+  nextBillingDate DateTime?
+  monthlyRate     Float
+  isAutoRenew     Boolean   @default(true)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  customer Customer @relation("CustomerSubscriptions", fields: [customerId], references: [id])
+  plan     Plan     @relation("PlanSubscriptions", fields: [planId], references: [id])
+
+  @@unique([customerId, planId])
+  @@map("customer_subscriptions")
 }
 
-enum PackageType {
-  BASIC
-  STANDARD
-  PREMIUM
-  ENTERPRISE
-}
-
-enum CustomerStatus {
-  ACTIVE
-  SUSPENDED
-  DISCONNECTED
-  PENDING
-}
-
-enum BillStatus {
-  PENDING
-  PAID
-  OVERDUE
-  CANCELLED
-}
-
-enum PaymentMethod {
-  CASH
-  CREDIT_CARD
-  DEBIT_CARD
-  BANK_TRANSFER
-  ONLINE
-  CHECK
-}
-
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
-}
-
-enum SettlementStatus {
-  PARTIAL
-  COMPLETED
-  CANCELLED
-}
-
-enum TransactionType {
-  PAYMENT
-  REFUND
-  ADJUSTMENT
-  PENALTY
-  DISCOUNT
-}
-
-enum TransactionStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  CANCELLED
-}
-
-enum ComplaintCategory {
-  TECHNICAL
-  BILLING
-  SERVICE
-  INSTALLATION
-  EQUIPMENT
-  OTHER
-}
-
-enum ComplaintPriority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
-}
-
-enum ComplaintStatus {
-  OPEN
-  IN_PROGRESS
-  RESOLVED
-  CLOSED
-  ESCALATED
-}
-
-enum ReportType {
-  BILLING
-  CUSTOMER
-  REVENUE
-  COMPLAINTS
-  PERFORMANCE
-  AUDIT
-}
+// Enums are not supported in SQLite, using String types instead

@@ -188,13 +188,13 @@ export class AuthService {
       throw new Error('JWT secrets are not configured');
     }
 
-    const accessToken = jwt.sign(payload, jwtSecret as jwt.Secret, {
+    const accessToken = jwt.sign(payload, jwtSecret, {
       expiresIn: config.jwt.expiresIn,
-    });
+    } as jwt.SignOptions);
 
-    const refreshToken = jwt.sign(payload, jwtRefreshSecret as jwt.Secret, {
+    const refreshToken = jwt.sign(payload, jwtRefreshSecret, {
       expiresIn: config.jwt.refreshExpiresIn,
-    });
+    } as jwt.SignOptions);
 
     return {
       accessToken,

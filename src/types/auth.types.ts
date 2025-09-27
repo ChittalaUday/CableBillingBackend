@@ -53,3 +53,33 @@ export interface ResetPasswordDto {
   password: string;
   confirmPassword: string;
 }
+
+// Customer Authentication Types
+export interface CustomerLoginDto {
+  accountNo: string;
+  password: string;
+}
+
+export interface CustomerRegisterDto {
+  accountNo: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  password?: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  connectionType: 'CABLE_TV' | 'INTERNET' | 'PHONE' | 'BUNDLE';
+  packageType: 'BASIC' | 'STANDARD' | 'PREMIUM' | 'ENTERPRISE';
+  monthlyRate: number;
+  installationDate: Date;
+  notes?: string;
+}
+
+export interface CustomerChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
