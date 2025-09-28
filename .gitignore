@@ -7,6 +7,7 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
+
 # Runtime data
 pids
 *.pid
@@ -249,6 +250,7 @@ Desktop.ini
 *.iws
 *.iml
 *.ipr
+
 .env
 .env.local
 .env.development.local
