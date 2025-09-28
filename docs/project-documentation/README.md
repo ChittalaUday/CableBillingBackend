@@ -6,9 +6,10 @@ This directory contains detailed documentation for the Cable Management System.
 
 1. [Box Activation Features](BOX_ACTIVATION_FEATURES.md) - Documentation for the new box activation tracking system
 2. [Enhanced Billing System](ENHANCED_BILLING_SYSTEM.md) - Details about improvements to the billing functionality
-3. [Entity Relationship Diagram](ERD.md) - Visual representation of the database schema
-4. [Summary of Changes](SUMMARY_OF_CHANGES.md) - Comprehensive summary of all enhancements made
-5. [System Architecture](SYSTEM_ARCHITECTURE.md) - High-level overview of the system architecture
+3. [Billing System](BILLING_SYSTEM.md) - Comprehensive documentation for the new billing system
+4. [Entity Relationship Diagram](ERD.md) - Visual representation of the database schema
+5. [Summary of Changes](SUMMARY_OF_CHANGES.md) - Comprehensive summary of all enhancements made
+6. [System Architecture](SYSTEM_ARCHITECTURE.md) - High-level overview of the system architecture
 
 ## Overview
 
@@ -40,8 +41,9 @@ For developers looking to understand the system:
 
 1. Start with the [System Architecture](SYSTEM_ARCHITECTURE.md) document for a high-level overview
 2. Review the [Enhanced Billing System](ENHANCED_BILLING_SYSTEM.md) for details on financial tracking
-3. Check the [Box Activation Features](BOX_ACTIVATION_FEATURES.md) for service action tracking
-4. Refer to the [ERD](ERD.md) for database relationships
+3. Check the [Billing System](BILLING_SYSTEM.md) for comprehensive documentation on the new billing functionality
+4. Refer to the [Box Activation Features](BOX_ACTIVATION_FEATURES.md) for service action tracking
+5. Refer to the [ERD](ERD.md) for database relationships
 
 ## API Documentation
 
