@@ -70,7 +70,7 @@ export class BoxService {
         where: { id: data.customerId },
         data: {
           boxStatus,
-          boxActivatedAt: data.actionType === 'ACTIVATED' ? new Date() : undefined,
+          ...(data.actionType === 'ACTIVATED' ? { boxActivatedAt: new Date() } : { boxActivatedAt: null }),
           lastBoxStatusChangedAt: new Date(),
         },
       });
@@ -97,7 +97,11 @@ export class BoxService {
       await tx.boxActivation.update({
         where: { id: boxActivation.id },
         data: {
-          transactionId: transaction.id,
+          transaction: {
+            connect: {
+              id: transaction.id,
+            },
+          },
         },
       });
 
