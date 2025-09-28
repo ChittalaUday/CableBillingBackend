@@ -7,8 +7,8 @@ generator client {
 
 // Primary: PostgreSQL for production, SQLite for development
 datasource db {
-  provider = "postgresql"
-  url      = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -34,40 +34,50 @@ model User {
   handledComplaints Complaint[] @relation("ComplaintHandledBy")
   createdReports    Report[]    @relation("ReportCreatedBy")
   auditLogs         AuditLog[]  @relation("AuditLogUser")
+  generatedBills    Bill[]      @relation("BillGeneratedBy")
+  collectedPayments Payment[]   @relation("PaymentCollectedBy")
+  settledDues       DueSettlement[] @relation("DueSettlementSettledBy")
+  serviceActions    BoxActivation[] @relation("ServiceActionPerformedBy")
+  performedTransactions Transaction[] @relation("TransactionPerformedBy")
 
   @@map("users")
 }
 
 model Customer {
-  id               String    @id @default(cuid())
-  accountNo        String    @unique
-  customerNumber   String    @unique
-  lcoCustomerId    String? // LCO Customer ID
-  serialNumber     String? // Equipment serial number
-  vcNumber         String? // VC Number
-  firstName        String
-  lastName         String
-  email            String?   @unique
-  password         String? // Customer login password (for local auth)
-  supabaseUserId   String?   @unique // Supabase Auth User ID
-  phone            String    @unique
-  address          String
-  city             String
-  state            String
-  zipCode          String
-  connectionType   String
-  packageType      String
-  monthlyRate      Float
-  installationDate DateTime
-  lastBillDate     DateTime?
-  nextBillDate     DateTime?
-  status           String    @default("ACTIVE")
-  msoShareDue      Float?
-  notes            String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  createdBy        String
-  updatedBy        String?
+  id                    String    @id @default(cuid())
+  accountNo             String    @unique
+  customerNumber        String    @unique
+  lcoCustomerId         String? // LCO Customer ID
+  serialNumber          String? // Equipment serial number
+  vcNumber              String? // VC Number
+  firstName             String
+  lastName              String
+  email                 String?   @unique
+  password              String? // Customer login password (for local auth)
+  supabaseUserId        String?   @unique // Supabase Auth User ID
+  phone                 String    @unique
+  address               String
+  city                  String
+  state                 String
+  zipCode               String
+  connectionType        String
+  packageType           String
+  monthlyRate           Float
+  installationDate      DateTime
+  lastBillDate          DateTime?
+  nextBillDate          DateTime?
+  status                String    @default("ACTIVE")
+  msoShareDue           Float?
+  notes                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  createdBy             String
+  updatedBy             String?
+  
+  // Box status tracking fields
+  boxStatus             String?   @default("INACTIVE")
+  boxActivatedAt        DateTime?
+  lastBoxStatusChangedAt DateTime?
 
   // Relations
   creator        User                   @relation("CustomerCreatedBy", fields: [createdBy], references: [id])
@@ -78,54 +88,65 @@ model Customer {
   complaints     Complaint[]            @relation("CustomerComplaints")
   transactions   Transaction[]          @relation("CustomerTransactions")
   subscriptions  CustomerSubscription[] @relation("CustomerSubscriptions")
+  serviceActions BoxActivation[]        @relation("CustomerServiceActions")
 
   @@map("customers")
 }
 
 model Bill {
-  id              String    @id @default(cuid())
-  billNumber      String    @unique
-  customerId      String
-  billDate        DateTime
-  dueDate         DateTime
-  amount          Float
-  previousReading Int
-  currentReading  Int
-  unitsConsumed   Int
-  status          String    @default("PENDING")
-  paidAt          DateTime?
-  paidAmount      Float?
-  notes           String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  createdBy       String
+  id                    String    @id @default(cuid())
+  billNumber            String    @unique
+  customerId            String
+  billDate              DateTime
+  dueDate               DateTime
+  amount                Float
+  // Removed meter reading fields as they're not needed for cable billing
+  // previousReading    Int
+  // currentReading     Int
+  // unitsConsumed      Int
+  status                String    @default("PENDING")
+  paidAt                DateTime?
+  paidAmount            Float?
+  notes                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  createdBy             String
+  generatedBy           String    // Staff who generated the bill
+  isPhysicalBillGenerated Boolean @default(false) // Physical receipt generated
 
   // Relations
   customer       Customer        @relation("CustomerBills", fields: [customerId], references: [id])
   creator        User            @relation("BillCreatedBy", fields: [createdBy], references: [id])
+  generator      User            @relation("BillGeneratedBy", fields: [generatedBy], references: [id])
   payments       Payment[]       @relation("BillPayments")
   dueSettlements DueSettlement[] @relation("BillDueSettlements")
+  transactions   Transaction[]   @relation("TransactionBill")
 
   @@map("bills")
 }
 
 model Payment {
-  id            String   @id @default(cuid())
-  paymentNumber String   @unique
-  customerId    String
-  billId        String?
-  amount        Float
-  paymentMethod String
-  paymentDate   DateTime
-  transactionId String?
-  status        String   @default("COMPLETED")
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  paymentNumber      String   @unique
+  customerId         String
+  billId             String?
+  amount             Float
+  paymentMethod      String
+  paymentDate        DateTime
+  transactionId      String?  @unique
+  status             String   @default("COMPLETED")
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  paymentSource      String   // "CASH", "ONLINE", "CHEQUE", etc.
+  collectedBy        String?  // Staff who collected payment
+  isReceiptGenerated Boolean  @default(false) // Physical receipt generated
 
   // Relations
-  customer Customer @relation("CustomerPayments", fields: [customerId], references: [id])
-  bill     Bill?    @relation("BillPayments", fields: [billId], references: [id])
+  customer    Customer @relation("CustomerPayments", fields: [customerId], references: [id])
+  bill        Bill?    @relation("BillPayments", fields: [billId], references: [id])
+  collector   User?    @relation("PaymentCollectedBy", fields: [collectedBy], references: [id])
+  transaction Transaction? @relation("TransactionPayment")
 
   @@map("payments")
 }
@@ -142,10 +163,13 @@ model DueSettlement {
   notes           String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  settledBy       String   // Staff who settled the due
 
   // Relations
   customer Customer @relation("CustomerDueSettlements", fields: [customerId], references: [id])
   bill     Bill     @relation("BillDueSettlements", fields: [billId], references: [id])
+  settler  User     @relation("DueSettlementSettledBy", fields: [settledBy], references: [id])
+  transactions Transaction[] @relation("TransactionDueSettlement")
 
   @@map("due_settlements")
 }
@@ -154,7 +178,7 @@ model Transaction {
   id                String   @id @default(cuid())
   transactionNumber String   @unique
   customerId        String
-  type              String
+  type              String   // "BILL_GENERATED", "PAYMENT_RECEIVED", "DUE_SETTLED", "BOX_ACTIVATED", etc.
   amount            Float
   description       String
   transactionDate   DateTime
@@ -163,9 +187,21 @@ model Transaction {
   notes             String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  performedBy       String?  // Staff who executed action; null if system/online
+  
+  // Optional relations to other entities
+  relatedBillId     String?
+  relatedPaymentId  String?  @unique
+  relatedDueSettlementId String?  @unique
+  relatedActionId   String?  @unique
 
   // Relations
-  customer Customer @relation("CustomerTransactions", fields: [customerId], references: [id])
+  customer       Customer      @relation("CustomerTransactions", fields: [customerId], references: [id])
+  performer      User?         @relation("TransactionPerformedBy", fields: [performedBy], references: [id])
+  relatedBill    Bill?         @relation("TransactionBill", fields: [relatedBillId], references: [id])
+  relatedPayment Payment?      @relation("TransactionPayment", fields: [relatedPaymentId], references: [id])
+  relatedDueSettlement DueSettlement? @relation("TransactionDueSettlement", fields: [relatedDueSettlementId], references: [id])
+  relatedAction  BoxActivation? @relation("TransactionServiceAction", fields: [relatedActionId], references: [id])
 
   @@map("transactions")
 }
@@ -266,6 +302,26 @@ model CustomerSubscription {
 
   @@unique([customerId, planId])
   @@map("customer_subscriptions")
+}
+
+// New model for box activation/service actions
+model BoxActivation {
+  id          String   @id @default(cuid())
+  customerId  String
+  actionType  String   // "ACTIVATED", "SUSPENDED", "DEACTIVATED", "REACTIVATED"
+  actionDate  DateTime @default(now())
+  performedBy String?  // Staff who performed action; null if automated/system
+  reason      String?  // Reason for action e.g., "New Connection", "Due Payment", "Complaint Resolved"
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  customer   Customer @relation("CustomerServiceActions", fields: [customerId], references: [id])
+  performer  User?    @relation("ServiceActionPerformedBy", fields: [performedBy], references: [id])
+  transaction Transaction? @relation("TransactionServiceAction")
+
+  @@map("box_activations")
 }
 
 // Enums are not supported in SQLite, using String types instead

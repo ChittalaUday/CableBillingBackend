@@ -3,7 +3,7 @@
     "target": "ES2022",
     "module": "Node16",
     "lib": ["ES2022", "DOM"],
-    "types": ["node"],
+    "types": ["node", "jest"],
     "allowJs": true,
     "outDir": "./dist",
     "rootDir": "./src",
@@ -41,10 +41,11 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "exactOptionalPropertyTypes": true,
-    "noPropertyAccessFromIndexSignature": true
+    "noPropertyAccessFromIndexSignature": true,
+    "isolatedModules": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests/**/*"],
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist"],
   "ts-node": {
     "require": ["tsconfig-paths/register"]
   }

@@ -47,6 +47,9 @@ CREATE TABLE "customers" (
     "updatedAt" DATETIME NOT NULL,
     "createdBy" TEXT NOT NULL,
     "updatedBy" TEXT,
+    "boxStatus" TEXT DEFAULT 'INACTIVE',
+    "boxActivatedAt" DATETIME,
+    "lastBoxStatusChangedAt" DATETIME,
     CONSTRAINT "customers_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "customers_updatedBy_fkey" FOREIGN KEY ("updatedBy") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
@@ -59,9 +62,6 @@ CREATE TABLE "bills" (
     "billDate" DATETIME NOT NULL,
     "dueDate" DATETIME NOT NULL,
     "amount" REAL NOT NULL,
-    "previousReading" INTEGER NOT NULL,
-    "currentReading" INTEGER NOT NULL,
-    "unitsConsumed" INTEGER NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'PENDING',
     "paidAt" DATETIME,
     "paidAmount" REAL,
@@ -69,8 +69,11 @@ CREATE TABLE "bills" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     "createdBy" TEXT NOT NULL,
+    "generatedBy" TEXT NOT NULL,
+    "isPhysicalBillGenerated" BOOLEAN NOT NULL DEFAULT false,
     CONSTRAINT "bills_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "customers" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "bills_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT "bills_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "bills_generatedBy_fkey" FOREIGN KEY ("generatedBy") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -87,8 +90,12 @@ CREATE TABLE "payments" (
     "notes" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
+    "paymentSource" TEXT NOT NULL,
+    "collectedBy" TEXT,
+    "isReceiptGenerated" BOOLEAN NOT NULL DEFAULT false,
     CONSTRAINT "payments_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "customers" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "payments_billId_fkey" FOREIGN KEY ("billId") REFERENCES "bills" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    CONSTRAINT "payments_billId_fkey" FOREIGN KEY ("billId") REFERENCES "bills" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "payments_collectedBy_fkey" FOREIGN KEY ("collectedBy") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -104,8 +111,10 @@ CREATE TABLE "due_settlements" (
     "notes" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
+    "settledBy" TEXT NOT NULL,
     CONSTRAINT "due_settlements_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "customers" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "due_settlements_billId_fkey" FOREIGN KEY ("billId") REFERENCES "bills" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT "due_settlements_billId_fkey" FOREIGN KEY ("billId") REFERENCES "bills" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "due_settlements_settledBy_fkey" FOREIGN KEY ("settledBy") REFERENCES "users" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -122,7 +131,17 @@ CREATE TABLE "transactions" (
     "notes" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "transactions_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "customers" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    "performedBy" TEXT,
+    "relatedBillId" TEXT,
+    "relatedPaymentId" TEXT,
+    "relatedDueSettlementId" TEXT,
+    "relatedActionId" TEXT,
+    CONSTRAINT "transactions_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "customers" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "transactions_performedBy_fkey" FOREIGN KEY ("performedBy") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "transactions_relatedBillId_fkey" FOREIGN KEY ("relatedBillId") REFERENCES "bills" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "transactions_relatedPaymentId_fkey" FOREIGN KEY ("relatedPaymentId") REFERENCES "payments" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "transactions_relatedDueSettlementId_fkey" FOREIGN KEY ("relatedDueSettlementId") REFERENCES "due_settlements" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "transactions_relatedActionId_fkey" FOREIGN KEY ("relatedActionId") REFERENCES "box_activations" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -180,6 +199,8 @@ CREATE TABLE "plans" (
     "price" REAL NOT NULL,
     "channels" TEXT,
     "packageDetails" TEXT,
+    "months" INTEGER NOT NULL DEFAULT 1,
+    "isPriority" BOOLEAN NOT NULL DEFAULT false,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
@@ -201,6 +222,21 @@ CREATE TABLE "customer_subscriptions" (
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "customer_subscriptions_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "customers" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "customer_subscriptions_planId_fkey" FOREIGN KEY ("planId") REFERENCES "plans" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "box_activations" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "customerId" TEXT NOT NULL,
+    "actionType" TEXT NOT NULL,
+    "actionDate" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "performedBy" TEXT,
+    "reason" TEXT,
+    "notes" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "box_activations_customerId_fkey" FOREIGN KEY ("customerId") REFERENCES "customers" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "box_activations_performedBy_fkey" FOREIGN KEY ("performedBy") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateIndex
@@ -231,7 +267,19 @@ CREATE UNIQUE INDEX "bills_billNumber_key" ON "bills"("billNumber");
 CREATE UNIQUE INDEX "payments_paymentNumber_key" ON "payments"("paymentNumber");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "payments_transactionId_key" ON "payments"("transactionId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "transactions_transactionNumber_key" ON "transactions"("transactionNumber");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "transactions_relatedPaymentId_key" ON "transactions"("relatedPaymentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "transactions_relatedDueSettlementId_key" ON "transactions"("relatedDueSettlementId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "transactions_relatedActionId_key" ON "transactions"("relatedActionId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "complaints_complaintNumber_key" ON "complaints"("complaintNumber");
