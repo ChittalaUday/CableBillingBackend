@@ -1,19 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import { seedUsers, clearUsers } from './users.seeder';
 import { seedCustomers, clearCustomers } from './customers.seeder';
-import { seedPlans } from './plans.seeder';
+import { seedPlans, clearPlans } from './plans.seeder';
+import { seedComplaints, clearComplaints } from './complaints.seeder';
 
 const prisma = new PrismaClient();
-
-async function clearPlans() {
-  console.log('Clearing plans...');
-  try {
-    await prisma.plan.deleteMany();
-    console.log('Plans cleared successfully');
-  } catch (error) {
-    console.error('Error clearing plans:', error);
-  }
-}
 
 async function main(): Promise<void> {
   console.log('🌱 Starting database seeding...');
@@ -22,15 +13,19 @@ async function main(): Promise<void> {
     // Clear existing data (optional - comment out if you want to preserve existing data)
     // await clearUsers();
     // await clearCustomers();
+    // await clearComplaints();
 
     // Seed users first
-    // await seedUsers();
+    await seedUsers();
 
     // // Seed customers
-    // await seedCustomers();
+    await seedCustomers();
 
     // Seed plans
     await seedPlans();
+
+    // Seed complaints
+    await seedComplaints();
 
     console.log('✅ Database seeding completed successfully!');
   } catch (error) {
@@ -55,22 +50,31 @@ async function runSeeder(): Promise<void> {
       break;
     case 'plans':
       console.log('🌱 Seeding plans only...');
+      await clearPlans(); // Clean before seeding
       await seedPlans();
+      break;
+    case 'complaints':
+      console.log('🌱 Seeding complaints only...');
+      await seedComplaints();
       break;
     case 'clear':
       console.log('🗑️ Clearing all data...');
       await clearCustomers();
       await clearUsers();
       await clearPlans();
+      await clearComplaints();
       break;
     case 'reset':
       console.log('🔄 Resetting database (clear + seed)...');
       await clearCustomers();
       await clearUsers();
       await clearPlans();
+      await clearComplaints();
       await seedUsers();
       await seedCustomers();
+      await clearPlans(); // Clean before seeding
       await seedPlans();
+      await seedComplaints();
       break;
     default:
       console.log('🌱 Running full seed...');

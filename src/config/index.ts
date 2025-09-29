@@ -97,7 +97,7 @@ interface Config {
     version: string;
   };
   cors: {
-    origin: string[];
+    origin: (string | RegExp)[] | string | boolean;
   };
   supabase?: {
     url: string;
@@ -116,7 +116,7 @@ const config: Config = {
     description: process.env.API_DESCRIPTION || 'Cable Management System API',
     env: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '3000', 10),
-    host: process.env.HOST || 'localhost',
+    host: process.env.HOST || '0.0.0.0',
   },
   database: {
     url: process.env.DATABASE_URL || 'postgresql://username:password@localhost:5432/cable_db',
@@ -160,7 +160,12 @@ const config: Config = {
     version: process.env.API_VERSION || '1.0.0',
   },
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
+    origin:
+      process.env.NODE_ENV === 'development'
+        ? '*' // Allow all origins in development
+        : process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || [
+            'http://localhost:3000',
+          ],
   },
   frontend: {
     url: process.env.FRONTEND_URL || 'http://localhost:3000',

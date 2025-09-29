@@ -103,9 +103,11 @@ export class BillingService {
   /**
    * Create a new bill
    */
-  public async createBill(data: CreateBillData): Promise<{ bill: BillResponse; transaction: TransactionResponse }> {
+  public async createBill(
+    data: CreateBillData
+  ): Promise<{ bill: BillResponse; transaction: TransactionResponse }> {
     // Start a transaction to ensure data consistency
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async tx => {
       // Generate unique bill number
       const billNumber = await this.generateBillNumber();
 
@@ -136,7 +138,7 @@ export class BillingService {
       // Create a corresponding transaction record
       const transactionNumber = await this.generateTransactionNumber();
       const transactionDescription = `Bill generated for customer - Amount: ${data.amount}`;
-      
+
       const transaction = await tx.transaction.create({
         data: {
           transactionNumber,
@@ -163,9 +165,11 @@ export class BillingService {
   /**
    * Create a payment
    */
-  public async createPayment(data: CreatePaymentData): Promise<{ payment: PaymentResponse; transaction: TransactionResponse }> {
+  public async createPayment(
+    data: CreatePaymentData
+  ): Promise<{ payment: PaymentResponse; transaction: TransactionResponse }> {
     // Start a transaction to ensure data consistency
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async tx => {
       // Generate unique payment number
       const paymentNumber = await this.generatePaymentNumber();
 
@@ -215,7 +219,7 @@ export class BillingService {
       // Create a corresponding transaction record
       const transactionNumber = await this.generateTransactionNumber();
       const transactionDescription = `Payment received from customer - Amount: ${data.amount}, Method: ${data.paymentMethod}`;
-      
+
       const transaction = await tx.transaction.create({
         data: {
           transactionNumber,
@@ -242,9 +246,11 @@ export class BillingService {
   /**
    * Create a due settlement
    */
-  public async createDueSettlement(data: CreateDueSettlementData): Promise<{ dueSettlement: DueSettlementResponse; transaction: TransactionResponse }> {
+  public async createDueSettlement(
+    data: CreateDueSettlementData
+  ): Promise<{ dueSettlement: DueSettlementResponse; transaction: TransactionResponse }> {
     // Start a transaction to ensure data consistency
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async tx => {
       // Get the bill to determine original amount
       const bill = await tx.bill.findUnique({
         where: { id: data.billId },
@@ -290,7 +296,7 @@ export class BillingService {
       // Create a corresponding transaction record
       const transactionNumber = await this.generateTransactionNumber();
       const transactionDescription = `Due settlement processed for customer - Amount: ${data.settledAmount}`;
-      
+
       const transaction = await tx.transaction.create({
         data: {
           transactionNumber,

@@ -94,16 +94,28 @@ export class CustomersController {
   /**
    * Get customer by ID (Staff and above or customer themselves)
    */
-  public getCustomerById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public getCustomerById = async (req: any, res: Response): Promise<void> => {
     try {
-      // Validate parameters
-      const { error, value } = customerIdParamSchema.validate(req.params);
-      if (error) {
-        ResponseUtil.badRequest(res, 'Invalid customer ID', error.details);
+      let customerId: string;
+
+      // If customer is authenticated, use their own ID
+      if (req.customer) {
+        customerId = req.customer.id;
+      } else if (req.user && req.params.id) {
+        // Staff accessing customer data
+        // Validate parameters
+        const { error, value } = customerIdParamSchema.validate(req.params);
+        if (error) {
+          ResponseUtil.badRequest(res, 'Invalid customer ID', error.details);
+          return;
+        }
+        customerId = value.id;
+      } else {
+        ResponseUtil.badRequest(res, 'Customer ID is required');
         return;
       }
 
-      const customer = await this.customersService.getCustomerById(value.id);
+      const customer = await this.customersService.getCustomerById(customerId);
       ResponseUtil.success(res, customer, 'Customer retrieved successfully');
     } catch (error: any) {
       console.error('Get customer by ID error:', error);
@@ -149,10 +161,7 @@ export class CustomersController {
   /**
    * Get customer by phone number (Staff and above)
    */
-  public getCustomerByPhone = async (
-    req: AuthenticatedRequest,
-    res: Response
-  ): Promise<void> => {
+  public getCustomerByPhone = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       // Validate parameters
       const { error, value } = customerPhoneParamSchema.validate(req.params);
@@ -184,7 +193,9 @@ export class CustomersController {
   ): Promise<void> => {
     try {
       // Validate parameters
-      const { error: paramError, value: paramValue } = customerPhoneParamSchema.validate(req.params);
+      const { error: paramError, value: paramValue } = customerPhoneParamSchema.validate(
+        req.params
+      );
       if (paramError) {
         ResponseUtil.badRequest(res, 'Invalid phone number', paramError.details);
         return;

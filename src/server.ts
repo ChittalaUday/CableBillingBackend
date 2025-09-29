@@ -16,14 +16,33 @@ import { httpLogger, requestTimer, structuredApiLogger } from '@/middleware/logg
 import authRoutes from '@/modules/auth/auth.routes';
 import usersRoutes from '@/modules/users/users.routes';
 import customersRoutes from '@/modules/customers/customers.routes';
+import customersCustomerRoutes from '@/modules/customers/customers.customer.routes';
 import logsRoutes from '@/modules/logs/logs.routes';
 import plansRoutes from '@/modules/plans/plans.routes';
 import boxRoutes from '@/modules/box/box.routes';
 import billingRoutes from '@/modules/billing/billing.routes';
+import billingCustomerRoutes from '@/modules/billing/billing.customer.routes';
+import complaintsRoutes from '@/modules/complaints/complaints.routes';
+import complaintsCustomerRoutes from '@/modules/complaints/complaints.customer.routes';
 // import staffRoutes from '@/modules/staff/staff.routes';
-// import complaintsRoutes from '@/modules/complaints/complaints.routes';
 // import notificationsRoutes from '@/modules/notifications/notifications.routes';
 // import reportsRoutes from '@/modules/reports/reports.routes';
+
+import os from 'os';
+
+// Utility function to get LAN IP
+function getLocalNetworkIp() {
+  const interfaces = os.networkInterfaces();
+  for (const iface of Object.values(interfaces)) {
+    if (!iface) continue;
+    for (const addr of iface) {
+      if (addr.family === 'IPv4' && !addr.internal) {
+        return addr.address;
+      }
+    }
+  }
+  return 'localhost';
+}
 
 const app = express();
 
@@ -90,12 +109,15 @@ app.get('/api', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/customers', customersRoutes);
+app.use('/api/customer', customersCustomerRoutes); // Customer self-service routes
 app.use('/api/logs', logsRoutes);
 app.use('/api/plans', plansRoutes);
 app.use('/api/box', boxRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/customer/billing', billingCustomerRoutes); // Customer billing self-service routes
+app.use('/api/complaints', complaintsRoutes);
+app.use('/api/customer/complaints', complaintsCustomerRoutes);
 // app.use('/api/staff', staffRoutes);
-// app.use('/api/complaints', complaintsRoutes);
 // app.use('/api/notifications', notificationsRoutes);
 // app.use('/api/reports', reportsRoutes);
 
@@ -160,9 +182,12 @@ async function startServer() {
 
     // Start server
     const server = app.listen(config.app.port, config.app.host, () => {
-      Logger.info(`Server running on http://${config.app.host}:${config.app.port}`);
+      const localIp = getLocalNetworkIp();
+      Logger.info(`Server running on:`);
+      Logger.info(`- Local:   http://${config.app.host}:${config.app.port}`);
+      Logger.info(`- Network: http://${localIp}:${config.app.port}`);
       Logger.info(`Environment: ${config.app.env}`);
-      Logger.info(`API Documentation: http://${config.app.host}:${config.app.port}/api-docs`);
+      Logger.info(`API Documentation: http://${localIp}:${config.app.port}/api-docs`);
     });
 
     // Graceful shutdown

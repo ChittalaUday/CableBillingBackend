@@ -12,12 +12,36 @@ interface PlanData {
   duration: string;
 }
 
+export async function cleanPlans() {
+  console.log('Cleaning existing plans...');
+  
+  try {
+    // Delete all existing plans
+    const deletedPlans = await prisma.plan.deleteMany();
+    console.log(`Cleaned ${deletedPlans.count} existing plans`);
+  } catch (error) {
+    console.error('Error cleaning plans:', error);
+  }
+}
+
+export async function clearPlans(): Promise<void> {
+  console.log('🗑️ Clearing existing plans...');
+  
+  try {
+    // Delete all existing plans
+    const deletedPlans = await prisma.plan.deleteMany();
+    console.log(`✅ Plans cleared successfully! Removed ${deletedPlans.count} plans`);
+  } catch (error) {
+    console.error('❌ Error clearing plans:', error);
+  }
+}
+
 export async function seedPlans() {
   console.log('Seeding plans...');
 
   try {
     // Read the CSV file
-    const csvFilePath = path.join(__dirname, 'channel_plans.csv');
+    const csvFilePath = path.join(__dirname, 'cleaned.csv');
 
     if (!fs.existsSync(csvFilePath)) {
       console.error('CSV file not found:', csvFilePath);
@@ -87,10 +111,10 @@ export async function seedPlans() {
               type: planType.toString(),
               description: `${planData.category} - ${planData.duration}`,
               price: cleanPrice,
+              // Store only duration and category instead of the entire object
               packageDetails: JSON.stringify({
-                category: planData.category,
                 duration: planData.duration,
-                originalPrice: planData.price,
+                category: planData.category
               }),
               updatedAt: new Date(),
             },
@@ -135,10 +159,10 @@ export async function seedPlans() {
             type: planType.toString(),
             price: cleanPrice,
             channels: JSON.stringify([planData.name]), // For now, just use the plan name as a channel
+            // Store only duration and category instead of the entire object
             packageDetails: JSON.stringify({
-              category: planData.category,
               duration: planData.duration,
-              originalPrice: planData.price,
+              category: planData.category
             }),
             months: months,
             isPriority: isPriority,

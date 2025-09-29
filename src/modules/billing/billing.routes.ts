@@ -1,9 +1,6 @@
 import { Router } from 'express';
 import { BillingController } from './billing.controller';
-import { 
-  authenticateJWT, 
-  staffAndAbove 
-} from '@/middleware/auth.middleware';
+import { authenticateJWT, staffAndAbove, customerSelfOrStaff } from '@/middleware/auth.middleware';
 
 const router = Router();
 const billingController = new BillingController();
@@ -39,7 +36,11 @@ router.post('/due-settlements', staffAndAbove as any, billingController.createDu
  * @desc Get all bills for a customer
  * @access Staff and above or customer themselves
  */
-router.get('/bills/customer/:customerId', billingController.getBillsByCustomer as any);
+router.get(
+  '/bills/customer/:customerId',
+  customerSelfOrStaff as any,
+  billingController.getBillsByCustomer as any
+);
 
 /**
  * @route GET /api/billing/bills/:id
@@ -53,7 +54,11 @@ router.get('/bills/:id', staffAndAbove as any, billingController.getBillById as 
  * @desc Get all payments for a customer
  * @access Staff and above or customer themselves
  */
-router.get('/payments/customer/:customerId', billingController.getPaymentsByCustomer as any);
+router.get(
+  '/payments/customer/:customerId',
+  customerSelfOrStaff as any,
+  billingController.getPaymentsByCustomer as any
+);
 
 /**
  * @route GET /api/billing/payments/:id
@@ -67,13 +72,21 @@ router.get('/payments/:id', staffAndAbove as any, billingController.getPaymentBy
  * @desc Get all due settlements for a customer
  * @access Staff and above or customer themselves
  */
-router.get('/due-settlements/customer/:customerId', billingController.getDueSettlementsByCustomer as any);
+router.get(
+  '/due-settlements/customer/:customerId',
+  customerSelfOrStaff as any,
+  billingController.getDueSettlementsByCustomer as any
+);
 
 /**
  * @route GET /api/billing/due-settlements/:id
  * @desc Get due settlement by ID
  * @access Staff and above
  */
-router.get('/due-settlements/:id', staffAndAbove as any, billingController.getDueSettlementById as any);
+router.get(
+  '/due-settlements/:id',
+  staffAndAbove as any,
+  billingController.getDueSettlementById as any
+);
 
 export default router;

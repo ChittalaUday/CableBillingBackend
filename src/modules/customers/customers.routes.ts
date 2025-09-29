@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { CustomersController } from './customers.controller';
-import { 
-  authenticateJWT, 
-  adminOnly, 
-  managerOrAdmin, 
-  staffAndAbove 
+import {
+  authenticateJWT,
+  adminOnly,
+  managerOrAdmin,
+  staffAndAbove,
+  authenticateCustomerJWT,
+  customerSelfOrStaff,
 } from '@/middleware/auth.middleware';
 
 const router = Router();
@@ -19,6 +21,20 @@ router.post('/login', customersController.customerLogin as any);
 
 // Apply authentication to all other routes
 router.use(authenticateJWT);
+
+/**
+ * @route GET /api/customers/me
+ * @desc Get authenticated customer's own profile
+ * @access Customer only
+ */
+router.get('/me', authenticateCustomerJWT as any, customersController.getCustomerById as any);
+
+/**
+ * @route PUT /api/customers/me
+ * @desc Update authenticated customer's own profile
+ * @access Customer only
+ */
+router.put('/me', authenticateCustomerJWT as any, customersController.updateCustomer as any);
 
 /**
  * @route POST /api/customers
@@ -46,7 +62,11 @@ router.get('/stats', managerOrAdmin as any, customersController.getCustomerStats
  * @desc Get customer by account number
  * @access Staff and above
  */
-router.get('/account/:accountNo', staffAndAbove as any, customersController.getCustomerByAccountNo as any);
+router.get(
+  '/account/:accountNo',
+  staffAndAbove as any,
+  customersController.getCustomerByAccountNo as any
+);
 
 /**
  * @route GET /api/customers/phone/:phone
@@ -88,6 +108,10 @@ router.delete('/:id', adminOnly as any, customersController.deleteCustomer as an
  * @desc Change customer password
  * @access Staff and above
  */
-router.put('/:id/password', staffAndAbove as any, customersController.changeCustomerPassword as any);
+router.put(
+  '/:id/password',
+  staffAndAbove as any,
+  customersController.changeCustomerPassword as any
+);
 
 export default router;

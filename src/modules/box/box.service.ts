@@ -40,9 +40,11 @@ export class BoxService {
   /**
    * Create a new box activation record
    */
-  public async createBoxActivation(data: CreateBoxActivationData): Promise<{ boxActivation: BoxActivationResponse; transaction: TransactionResponse }> {
+  public async createBoxActivation(
+    data: CreateBoxActivationData
+  ): Promise<{ boxActivation: BoxActivationResponse; transaction: TransactionResponse }> {
     // Start a transaction to ensure data consistency
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async tx => {
       // Create the box activation record
       const boxActivation = await tx.boxActivation.create({
         data: {
@@ -70,7 +72,9 @@ export class BoxService {
         where: { id: data.customerId },
         data: {
           boxStatus,
-          ...(data.actionType === 'ACTIVATED' ? { boxActivatedAt: new Date() } : { boxActivatedAt: null }),
+          ...(data.actionType === 'ACTIVATED'
+            ? { boxActivatedAt: new Date() }
+            : { boxActivatedAt: null }),
           lastBoxStatusChangedAt: new Date(),
         },
       });
@@ -78,7 +82,7 @@ export class BoxService {
       // Create a corresponding transaction record
       const transactionNumber = await this.generateTransactionNumber();
       const transactionDescription = `Box ${data.actionType.toLowerCase()} for customer`;
-      
+
       const transaction = await tx.transaction.create({
         data: {
           transactionNumber,

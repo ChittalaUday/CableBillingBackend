@@ -18,18 +18,21 @@ The Cable Management System has been enhanced with comprehensive financial track
 ## Key Features
 
 ### Financial Tracking
+
 - Enhanced bill generation with staff tracking
 - Payment source and collection tracking
 - Due settlement processing with staff accountability
 - Centralized transaction logging for all financial activities
 
 ### Box Activation Tracking
+
 - Complete history of set-top box status changes
 - Staff accountability for all service actions
 - Automatic customer status updates
 - Integration with financial transaction logging
 
 ### Audit and Compliance
+
 - Complete audit trail for all actions
 - Timestamped records with user identification
 - Regulatory compliance reporting capabilities

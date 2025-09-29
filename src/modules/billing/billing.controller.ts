@@ -189,21 +189,24 @@ export class BillingController {
   /**
    * Get all bills for a customer (Staff and above or customer themselves)
    */
-  public getBillsByCustomer = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public getBillsByCustomer = async (req: any, res: Response): Promise<void> => {
     try {
-      // Validate parameters
-      const { error, value } = customerIdParamSchema.validate(req.params);
-      if (error) {
-        ResponseUtil.badRequest(res, 'Invalid customer ID', error.details);
-        return;
-      }
+      // For customers, use their own ID; for staff, use the provided customerId
+      let customerId: string;
 
-      const { customerId } = value;
-
-      // Check if user is authorized to view this customer's bills
-      // Staff can view any customer's data, customers can only view their own
-      if (req.user.role === 'CUSTOMER' && req.user.id !== customerId) {
-        ResponseUtil.forbidden(res, 'You are not authorized to view this customer\'s bills');
+      if (req.customer) {
+        // Customer accessing their own data
+        customerId = req.customer.id;
+      } else if (req.user && ['ADMIN', 'MANAGER', 'STAFF', 'TECHNICIAN'].includes(req.user.role)) {
+        // Staff accessing customer data - validate the provided customerId
+        const { error, value } = customerIdParamSchema.validate(req.params);
+        if (error) {
+          ResponseUtil.badRequest(res, 'Invalid customer ID', error.details);
+          return;
+        }
+        customerId = value.customerId;
+      } else {
+        ResponseUtil.forbidden(res, 'Access denied');
         return;
       }
 
@@ -230,7 +233,7 @@ export class BillingController {
       const { id } = value;
 
       const bill = await this.billingService.getBillById(id);
-      
+
       if (!bill) {
         ResponseUtil.notFound(res, 'Bill not found');
         return;
@@ -246,21 +249,24 @@ export class BillingController {
   /**
    * Get all payments for a customer (Staff and above or customer themselves)
    */
-  public getPaymentsByCustomer = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public getPaymentsByCustomer = async (req: any, res: Response): Promise<void> => {
     try {
-      // Validate parameters
-      const { error, value } = customerIdParamSchema.validate(req.params);
-      if (error) {
-        ResponseUtil.badRequest(res, 'Invalid customer ID', error.details);
-        return;
-      }
+      // For customers, use their own ID; for staff, use the provided customerId
+      let customerId: string;
 
-      const { customerId } = value;
-
-      // Check if user is authorized to view this customer's payments
-      // Staff can view any customer's data, customers can only view their own
-      if (req.user.role === 'CUSTOMER' && req.user.id !== customerId) {
-        ResponseUtil.forbidden(res, 'You are not authorized to view this customer\'s payments');
+      if (req.customer) {
+        // Customer accessing their own data
+        customerId = req.customer.id;
+      } else if (req.user && ['ADMIN', 'MANAGER', 'STAFF', 'TECHNICIAN'].includes(req.user.role)) {
+        // Staff accessing customer data - validate the provided customerId
+        const { error, value } = customerIdParamSchema.validate(req.params);
+        if (error) {
+          ResponseUtil.badRequest(res, 'Invalid customer ID', error.details);
+          return;
+        }
+        customerId = value.customerId;
+      } else {
+        ResponseUtil.forbidden(res, 'Access denied');
         return;
       }
 
@@ -287,7 +293,7 @@ export class BillingController {
       const { id } = value;
 
       const payment = await this.billingService.getPaymentById(id);
-      
+
       if (!payment) {
         ResponseUtil.notFound(res, 'Payment not found');
         return;
@@ -303,21 +309,24 @@ export class BillingController {
   /**
    * Get all due settlements for a customer (Staff and above or customer themselves)
    */
-  public getDueSettlementsByCustomer = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public getDueSettlementsByCustomer = async (req: any, res: Response): Promise<void> => {
     try {
-      // Validate parameters
-      const { error, value } = customerIdParamSchema.validate(req.params);
-      if (error) {
-        ResponseUtil.badRequest(res, 'Invalid customer ID', error.details);
-        return;
-      }
+      // For customers, use their own ID; for staff, use the provided customerId
+      let customerId: string;
 
-      const { customerId } = value;
-
-      // Check if user is authorized to view this customer's due settlements
-      // Staff can view any customer's data, customers can only view their own
-      if (req.user.role === 'CUSTOMER' && req.user.id !== customerId) {
-        ResponseUtil.forbidden(res, 'You are not authorized to view this customer\'s due settlements');
+      if (req.customer) {
+        // Customer accessing their own data
+        customerId = req.customer.id;
+      } else if (req.user && ['ADMIN', 'MANAGER', 'STAFF', 'TECHNICIAN'].includes(req.user.role)) {
+        // Staff accessing customer data - validate the provided customerId
+        const { error, value } = customerIdParamSchema.validate(req.params);
+        if (error) {
+          ResponseUtil.badRequest(res, 'Invalid customer ID', error.details);
+          return;
+        }
+        customerId = value.customerId;
+      } else {
+        ResponseUtil.forbidden(res, 'Access denied');
         return;
       }
 
@@ -344,7 +353,7 @@ export class BillingController {
       const { id } = value;
 
       const dueSettlement = await this.billingService.getDueSettlementById(id);
-      
+
       if (!dueSettlement) {
         ResponseUtil.notFound(res, 'Due settlement not found');
         return;

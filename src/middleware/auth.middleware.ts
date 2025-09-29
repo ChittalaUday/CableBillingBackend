@@ -147,14 +147,14 @@ export const authenticateCustomerJWT = async (
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader) {
       ResponseUtil.unauthorized(res, 'Authorization header missing');
       return;
     }
 
     const token = authHeader.split(' ')[1]; // Bearer TOKEN
-    
+
     if (!token) {
       ResponseUtil.unauthorized(res, 'Token missing from authorization header');
       return;
@@ -162,7 +162,7 @@ export const authenticateCustomerJWT = async (
 
     // Verify JWT token
     const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
-    
+
     // Get customer from database
     const customer = await prisma.customer.findUnique({
       where: { id: decoded.sub },
@@ -203,7 +203,7 @@ export const authenticateCustomerJWT = async (
       ResponseUtil.unauthorized(res, 'Invalid token');
       return;
     }
-    
+
     if (error instanceof jwt.TokenExpiredError) {
       ResponseUtil.unauthorized(res, 'Token expired');
       return;
@@ -315,5 +315,8 @@ export const customerSelfOrStaff = (req: any, res: Response, next: NextFunction)
     }
   }
 
-  ResponseUtil.forbidden(res, 'Access denied. You can only access your own data or have staff privileges.');
+  ResponseUtil.forbidden(
+    res,
+    'Access denied. You can only access your own data or have staff privileges.'
+  );
 };

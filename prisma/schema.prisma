@@ -28,55 +28,55 @@ model User {
   updatedAt   DateTime  @updatedAt
 
   // Relations
-  createdCustomers  Customer[]  @relation("CustomerCreatedBy")
-  updatedCustomers  Customer[]  @relation("CustomerUpdatedBy")
-  createdBills      Bill[]      @relation("BillCreatedBy")
-  handledComplaints Complaint[] @relation("ComplaintHandledBy")
-  createdReports    Report[]    @relation("ReportCreatedBy")
-  auditLogs         AuditLog[]  @relation("AuditLogUser")
-  generatedBills    Bill[]      @relation("BillGeneratedBy")
-  collectedPayments Payment[]   @relation("PaymentCollectedBy")
-  settledDues       DueSettlement[] @relation("DueSettlementSettledBy")
-  serviceActions    BoxActivation[] @relation("ServiceActionPerformedBy")
-  performedTransactions Transaction[] @relation("TransactionPerformedBy")
+  createdCustomers      Customer[]      @relation("CustomerCreatedBy")
+  updatedCustomers      Customer[]      @relation("CustomerUpdatedBy")
+  createdBills          Bill[]          @relation("BillCreatedBy")
+  handledComplaints     Complaint[]     @relation("ComplaintHandledBy")
+  createdReports        Report[]        @relation("ReportCreatedBy")
+  auditLogs             AuditLog[]      @relation("AuditLogUser")
+  generatedBills        Bill[]          @relation("BillGeneratedBy")
+  collectedPayments     Payment[]       @relation("PaymentCollectedBy")
+  settledDues           DueSettlement[] @relation("DueSettlementSettledBy")
+  serviceActions        BoxActivation[] @relation("ServiceActionPerformedBy")
+  performedTransactions Transaction[]   @relation("TransactionPerformedBy")
 
   @@map("users")
 }
 
 model Customer {
-  id                    String    @id @default(cuid())
-  accountNo             String    @unique
-  customerNumber        String    @unique
-  lcoCustomerId         String? // LCO Customer ID
-  serialNumber          String? // Equipment serial number
-  vcNumber              String? // VC Number
-  firstName             String
-  lastName              String
-  email                 String?   @unique
-  password              String? // Customer login password (for local auth)
-  supabaseUserId        String?   @unique // Supabase Auth User ID
-  phone                 String    @unique
-  address               String
-  city                  String
-  state                 String
-  zipCode               String
-  connectionType        String
-  packageType           String
-  monthlyRate           Float
-  installationDate      DateTime
-  lastBillDate          DateTime?
-  nextBillDate          DateTime?
-  status                String    @default("ACTIVE")
-  msoShareDue           Float?
-  notes                 String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  createdBy             String
-  updatedBy             String?
-  
+  id               String    @id @default(cuid())
+  accountNo        String    @unique
+  customerNumber   String    @unique
+  lcoCustomerId    String? // LCO Customer ID
+  serialNumber     String? // Equipment serial number
+  vcNumber         String? // VC Number
+  firstName        String
+  lastName         String
+  email            String?   @unique
+  password         String? // Customer login password (for local auth)
+  supabaseUserId   String?   @unique // Supabase Auth User ID
+  phone            String    @unique
+  address          String
+  city             String
+  state            String
+  zipCode          String
+  connectionType   String
+  packageType      String
+  monthlyRate      Float
+  installationDate DateTime
+  lastBillDate     DateTime?
+  nextBillDate     DateTime?
+  status           String    @default("ACTIVE")
+  msoShareDue      Float?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  createdBy        String
+  updatedBy        String?
+
   // Box status tracking fields
-  boxStatus             String?   @default("INACTIVE")
-  boxActivatedAt        DateTime?
+  boxStatus              String?   @default("INACTIVE")
+  boxActivatedAt         DateTime?
   lastBoxStatusChangedAt DateTime?
 
   // Relations
@@ -94,25 +94,22 @@ model Customer {
 }
 
 model Bill {
-  id                    String    @id @default(cuid())
-  billNumber            String    @unique
-  customerId            String
-  billDate              DateTime
-  dueDate               DateTime
-  amount                Float
-  // Removed meter reading fields as they're not needed for cable billing
-  // previousReading    Int
-  // currentReading     Int
-  // unitsConsumed      Int
-  status                String    @default("PENDING")
-  paidAt                DateTime?
-  paidAmount            Float?
-  notes                 String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  createdBy             String
-  generatedBy           String    // Staff who generated the bill
-  isPhysicalBillGenerated Boolean @default(false) // Physical receipt generated
+  id         String   @id @default(cuid())
+  billNumber String   @unique
+  customerId String
+  billDate   DateTime
+  dueDate    DateTime
+  amount     Float
+
+  status                  String    @default("PENDING")
+  paidAt                  DateTime?
+  paidAmount              Float?
+  notes                   String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  createdBy               String
+  generatedBy             String // Staff who generated the bill
+  isPhysicalBillGenerated Boolean   @default(false) // Physical receipt generated
 
   // Relations
   customer       Customer        @relation("CustomerBills", fields: [customerId], references: [id])
@@ -138,14 +135,14 @@ model Payment {
   notes              String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
-  paymentSource      String   // "CASH", "ONLINE", "CHEQUE", etc.
-  collectedBy        String?  // Staff who collected payment
+  paymentSource      String // "CASH", "ONLINE", "CHEQUE", etc.
+  collectedBy        String? // Staff who collected payment
   isReceiptGenerated Boolean  @default(false) // Physical receipt generated
 
   // Relations
-  customer    Customer @relation("CustomerPayments", fields: [customerId], references: [id])
-  bill        Bill?    @relation("BillPayments", fields: [billId], references: [id])
-  collector   User?    @relation("PaymentCollectedBy", fields: [collectedBy], references: [id])
+  customer    Customer     @relation("CustomerPayments", fields: [customerId], references: [id])
+  bill        Bill?        @relation("BillPayments", fields: [billId], references: [id])
+  collector   User?        @relation("PaymentCollectedBy", fields: [collectedBy], references: [id])
   transaction Transaction? @relation("TransactionPayment")
 
   @@map("payments")
@@ -163,12 +160,12 @@ model DueSettlement {
   notes           String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  settledBy       String   // Staff who settled the due
+  settledBy       String // Staff who settled the due
 
   // Relations
-  customer Customer @relation("CustomerDueSettlements", fields: [customerId], references: [id])
-  bill     Bill     @relation("BillDueSettlements", fields: [billId], references: [id])
-  settler  User     @relation("DueSettlementSettledBy", fields: [settledBy], references: [id])
+  customer     Customer      @relation("CustomerDueSettlements", fields: [customerId], references: [id])
+  bill         Bill          @relation("BillDueSettlements", fields: [billId], references: [id])
+  settler      User          @relation("DueSettlementSettledBy", fields: [settledBy], references: [id])
   transactions Transaction[] @relation("TransactionDueSettlement")
 
   @@map("due_settlements")
@@ -178,7 +175,7 @@ model Transaction {
   id                String   @id @default(cuid())
   transactionNumber String   @unique
   customerId        String
-  type              String   // "BILL_GENERATED", "PAYMENT_RECEIVED", "DUE_SETTLED", "BOX_ACTIVATED", etc.
+  type              String // "BILL_GENERATED", "PAYMENT_RECEIVED", "DUE_SETTLED", "BOX_ACTIVATED", etc.
   amount            Float
   description       String
   transactionDate   DateTime
@@ -187,21 +184,21 @@ model Transaction {
   notes             String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  performedBy       String?  // Staff who executed action; null if system/online
-  
+  performedBy       String? // Staff who executed action; null if system/online
+
   // Optional relations to other entities
-  relatedBillId     String?
-  relatedPaymentId  String?  @unique
-  relatedDueSettlementId String?  @unique
-  relatedActionId   String?  @unique
+  relatedBillId          String?
+  relatedPaymentId       String? @unique
+  relatedDueSettlementId String? @unique
+  relatedActionId        String? @unique
 
   // Relations
-  customer       Customer      @relation("CustomerTransactions", fields: [customerId], references: [id])
-  performer      User?         @relation("TransactionPerformedBy", fields: [performedBy], references: [id])
-  relatedBill    Bill?         @relation("TransactionBill", fields: [relatedBillId], references: [id])
-  relatedPayment Payment?      @relation("TransactionPayment", fields: [relatedPaymentId], references: [id])
+  customer             Customer       @relation("CustomerTransactions", fields: [customerId], references: [id])
+  performer            User?          @relation("TransactionPerformedBy", fields: [performedBy], references: [id])
+  relatedBill          Bill?          @relation("TransactionBill", fields: [relatedBillId], references: [id])
+  relatedPayment       Payment?       @relation("TransactionPayment", fields: [relatedPaymentId], references: [id])
   relatedDueSettlement DueSettlement? @relation("TransactionDueSettlement", fields: [relatedDueSettlementId], references: [id])
-  relatedAction  BoxActivation? @relation("TransactionServiceAction", fields: [relatedActionId], references: [id])
+  relatedAction        BoxActivation? @relation("TransactionServiceAction", fields: [relatedActionId], references: [id])
 
   @@map("transactions")
 }
@@ -212,8 +209,11 @@ model Complaint {
   customerId      String
   title           String
   description     String
+  /// Category of complaint - REPAIR, NEW_INSTALLATION, HOME_VISIT_COLLECTION, WIRE_CUT
   category        String
+  /// Priority level - LOW, MEDIUM, HIGH, URGENT
   priority        String    @default("MEDIUM")
+  /// Status of complaint - OPEN, IN_PROGRESS, RESOLVED, CLOSED
   status          String    @default("OPEN")
   assignedTo      String?
   resolvedAt      DateTime?
@@ -263,18 +263,19 @@ model AuditLog {
 
 // New models for subscription plans and customer subscriptions
 model Plan {
-  id             String   @id @default(cuid())
-  name           String   @unique
-  description    String?
-  type           String   @default("BASIC")
-  price          Float
-  channels       String?
-  packageDetails String?
-  months         Int      @default(1)
-  isPriority     Boolean  @default(false)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String   @unique
+  description     String?
+  type            String   @default("BASIC")
+  price           Float
+  discountedPrice Float?
+  channels        String?
+  packageDetails  String?
+  months          Int      @default(1)
+  isPriority      Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Relations
   subscriptions CustomerSubscription[] @relation("PlanSubscriptions")
@@ -308,17 +309,17 @@ model CustomerSubscription {
 model BoxActivation {
   id          String   @id @default(cuid())
   customerId  String
-  actionType  String   // "ACTIVATED", "SUSPENDED", "DEACTIVATED", "REACTIVATED"
+  actionType  String // "ACTIVATED", "SUSPENDED", "DEACTIVATED", "REACTIVATED"
   actionDate  DateTime @default(now())
-  performedBy String?  // Staff who performed action; null if automated/system
-  reason      String?  // Reason for action e.g., "New Connection", "Due Payment", "Complaint Resolved"
+  performedBy String? // Staff who performed action; null if automated/system
+  reason      String? // Reason for action e.g., "New Connection", "Due Payment", "Complaint Resolved"
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
-  customer   Customer @relation("CustomerServiceActions", fields: [customerId], references: [id])
-  performer  User?    @relation("ServiceActionPerformedBy", fields: [performedBy], references: [id])
+  customer    Customer     @relation("CustomerServiceActions", fields: [customerId], references: [id])
+  performer   User?        @relation("ServiceActionPerformedBy", fields: [performedBy], references: [id])
   transaction Transaction? @relation("TransactionServiceAction")
 
   @@map("box_activations")

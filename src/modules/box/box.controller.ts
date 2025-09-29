@@ -81,7 +81,10 @@ export class BoxController {
   /**
    * Get all box activations for a customer (Staff and above or customer themselves)
    */
-  public getBoxActivationsByCustomer = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public getBoxActivationsByCustomer = async (
+    req: AuthenticatedRequest,
+    res: Response
+  ): Promise<void> => {
     try {
       // Validate parameters
       const { error, value } = customerIdParamSchema.validate(req.params);
@@ -95,7 +98,10 @@ export class BoxController {
       // Check if user is authorized to view this customer's box activations
       // Staff can view any customer's data, customers can only view their own
       if (req.user.role === 'CUSTOMER' && req.user.id !== customerId) {
-        ResponseUtil.forbidden(res, 'You are not authorized to view this customer\'s box activations');
+        ResponseUtil.forbidden(
+          res,
+          "You are not authorized to view this customer's box activations"
+        );
         return;
       }
 
@@ -122,7 +128,7 @@ export class BoxController {
       const { id } = value;
 
       const activation = await this.boxService.getBoxActivationById(id);
-      
+
       if (!activation) {
         ResponseUtil.notFound(res, 'Box activation not found');
         return;

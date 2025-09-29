@@ -1,9 +1,6 @@
 import { Router } from 'express';
 import { BoxController } from './box.controller';
-import { 
-  authenticateJWT, 
-  staffAndAbove 
-} from '@/middleware/auth.middleware';
+import { authenticateJWT, staffAndAbove } from '@/middleware/auth.middleware';
 
 const router = Router();
 const boxController = new BoxController();
