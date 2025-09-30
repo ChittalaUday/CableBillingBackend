@@ -11,18 +11,18 @@ const billingController = new BillingController();
 router.use(authenticateJWT);
 
 /**
+ * @route POST /api/billing/calculate
+ * @desc Calculate billing information without making changes to the database
+ * @access Staff and above
+ */
+router.post('/calculate', staffAndAbove as any, billingController.calculateBilling as any);
+
+/**
  * @route POST /api/billing/bills
  * @desc Create a new bill
  * @access Staff and above
  */
 router.post('/bills', staffAndAbove as any, billingController.createBill as any);
-
-/**
- * @route POST /api/billing/payments
- * @desc Create a new payment
- * @access Staff and above
- */
-router.post('/payments', staffAndAbove as any, billingController.createPayment as any);
 
 /**
  * @route POST /api/billing/due-settlements
@@ -48,24 +48,6 @@ router.get(
  * @access Staff and above
  */
 router.get('/bills/:id', staffAndAbove as any, billingController.getBillById as any);
-
-/**
- * @route GET /api/billing/payments/customer/:customerId
- * @desc Get all payments for a customer
- * @access Staff and above or customer themselves
- */
-router.get(
-  '/payments/customer/:customerId',
-  customerSelfOrStaff as any,
-  billingController.getPaymentsByCustomer as any
-);
-
-/**
- * @route GET /api/billing/payments/:id
- * @desc Get payment by ID
- * @access Staff and above
- */
-router.get('/payments/:id', staffAndAbove as any, billingController.getPaymentById as any);
 
 /**
  * @route GET /api/billing/due-settlements/customer/:customerId

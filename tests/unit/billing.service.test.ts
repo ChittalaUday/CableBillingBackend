@@ -14,13 +14,6 @@ describe('BillingService', () => {
     });
   });
 
-  describe('createPayment', () => {
-    it('should create a new payment', async () => {
-      // This is a placeholder test since we would need to mock the database
-      expect(billingService).toBeDefined();
-    });
-  });
-
   describe('createDueSettlement', () => {
     it('should create a new due settlement', async () => {
       // This is a placeholder test since we would need to mock the database
@@ -37,20 +30,6 @@ describe('BillingService', () => {
 
   describe('getBillById', () => {
     it('should retrieve a bill by ID', async () => {
-      // This is a placeholder test since we would need to mock the database
-      expect(billingService).toBeDefined();
-    });
-  });
-
-  describe('getPaymentsByCustomer', () => {
-    it('should retrieve payments for a customer', async () => {
-      // This is a placeholder test since we would need to mock the database
-      expect(billingService).toBeDefined();
-    });
-  });
-
-  describe('getPaymentById', () => {
-    it('should retrieve a payment by ID', async () => {
       // This is a placeholder test since we would need to mock the database
       expect(billingService).toBeDefined();
     });

@@ -52,5 +52,4 @@ export interface RequestWithUser extends Request {
 export type UserRole = 'ADMIN' | 'MANAGER' | 'STAFF' | 'TECHNICIAN';
 export type CustomerStatus = 'ACTIVE' | 'SUSPENDED' | 'DISCONNECTED' | 'PENDING';
 export type BillStatus = 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED';
-export type PaymentMethod = 'CASH' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'BANK_TRANSFER' | 'ONLINE' | 'CHECK';
 export type ComplaintStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | 'ESCALATED';

@@ -1,24 +1,14 @@
 import { prisma } from '@/database/prisma.service';
-import { Bill, Payment, DueSettlement, Transaction } from '@prisma/client';
+import { Bill, DueSettlement, Transaction } from '@prisma/client';
 
 export interface CreateBillData {
   customerId: string;
-  amount: number;
+  planId: string[];
+  amountPaid: number;
   billDate: Date;
   dueDate: Date;
   notes?: string;
   generatedBy: string;
-}
-
-export interface CreatePaymentData {
-  customerId: string;
-  amount: number;
-  paymentMethod: string;
-  paymentSource: string;
-  paymentDate: Date;
-  billId?: string;
-  collectedBy?: string;
-  notes?: string;
 }
 
 export interface CreateDueSettlementData {
@@ -27,6 +17,12 @@ export interface CreateDueSettlementData {
   settledAmount: number;
   notes?: string;
   settledBy: string;
+}
+
+export interface CalculateBillingData {
+  customerId: string;
+  planIds: string[];
+  amountPaid?: number;
 }
 
 export interface BillResponse {
@@ -45,23 +41,6 @@ export interface BillResponse {
   createdBy: string;
   generatedBy: string;
   isPhysicalBillGenerated: boolean;
-}
-
-export interface PaymentResponse {
-  id: string;
-  paymentNumber: string;
-  customerId: string;
-  billId?: string | null;
-  amount: number;
-  paymentMethod: string;
-  paymentDate: Date;
-  status: string;
-  notes?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  paymentSource: string;
-  collectedBy?: string | null;
-  isReceiptGenerated: boolean;
 }
 
 export interface DueSettlementResponse {
@@ -94,31 +73,173 @@ export interface TransactionResponse {
   updatedAt: Date;
   performedBy?: string | null;
   relatedBillId?: string | null;
-  relatedPaymentId?: string | null;
   relatedDueSettlementId?: string | null;
   relatedActionId?: string | null;
 }
 
 export class BillingService {
   /**
-   * Create a new bill
+   * Calculate billing information based on customer and selected plans
+   * This is a temporary calculation that doesn't make any changes to the database
+   */
+  public async calculateBilling(data: CalculateBillingData): Promise<{
+    totalAmount: number;
+    amountPaid: number;
+    dueAmount: number;
+    dueDate: Date;
+    customerBalance: number;
+    plans: any[];
+  }> {
+    // Get customer information
+    const customer = await prisma.customer.findUnique({
+      where: { id: data.customerId },
+    });
+
+    if (!customer) {
+      throw new Error('Customer not found');
+    }
+
+    // Get plan information
+    const plans = await prisma.plan.findMany({
+      where: { id: { in: data.planIds } },
+    });
+
+    if (plans.length !== data.planIds.length) {
+      throw new Error('One or more plans not found');
+    }
+
+    // Calculate total amount based on plans
+    let totalAmount = 0;
+    let maxDuration = 1; // Default to 1 month
+
+    const planDetails = plans.map(plan => {
+      // Use discounted price if available, otherwise use regular price
+      const effectivePrice = plan.discountedPrice !== null ? plan.discountedPrice : plan.price;
+
+      // Calculate amount for this plan (price * duration in months)
+      const planAmount = effectivePrice * plan.months;
+
+      // Track maximum duration for due date calculation
+      if (plan.months > maxDuration) {
+        maxDuration = plan.months;
+      }
+
+      totalAmount += planAmount;
+
+      return {
+        id: plan.id,
+        name: plan.name,
+        price: plan.price,
+
+        discountedPrice: plan.discountedPrice,
+        effectivePrice: effectivePrice,
+        months: plan.months,
+        amount: planAmount,
+      };
+    });
+
+    // Calculate due amount
+    const amountPaid = data.amountPaid || 0;
+    const dueAmount = Math.max(0, totalAmount - amountPaid);
+
+    // Calculate due date (current date + max plan duration in months)
+    // For consistency with createBill, we should use a reference date
+    // In a real scenario, this would be the bill date when actually creating the bill
+    const referenceDate = new Date(); // Current date for calculation purposes
+    const dueDate = new Date(referenceDate);
+    dueDate.setMonth(dueDate.getMonth() + maxDuration);
+
+    // Calculate customer balance (existing balance + due amount)
+    // The customer balance represents what the customer owes or is owed
+    // If positive, customer owes money; if negative, customer has credit
+    const customerBalance = (customer as any).balance + dueAmount;
+
+    return {
+      totalAmount,
+      amountPaid,
+      dueAmount,
+      dueDate,
+      customerBalance,
+      plans: planDetails,
+    };
+  }
+
+  /**
+   * Create a new bill with calculated amounts based on plan pricing and duration
+   * - Calculates amount based on plan duration and pricing (discounted price if available)
+   * - Uses highest plan duration for due date calculation when multiple plans are provided
+   * - Creates corresponding transaction record
+   * - Updates customer billing dates
+   * - Returns both the bill and transaction
    */
   public async createBill(
     data: CreateBillData
   ): Promise<{ bill: BillResponse; transaction: TransactionResponse }> {
     // Start a transaction to ensure data consistency
     const result = await prisma.$transaction(async tx => {
+      // Get plan information to calculate amount and due date
+      const plans = await tx.plan.findMany({
+        where: { id: { in: data.planId } },
+      });
+
+      // check customer exists
+      const customer = await tx.customer.findUnique({
+        where: { id: data.customerId },
+      });
+
+      if (!customer) {
+        throw new Error('Customer not found');
+      }
+
+      if (plans.length !== data.planId.length) {
+        throw new Error('One or more plans not found');
+      }
+
+      // Calculate total amount based on plans and find max duration
+      let totalAmount = customer.balance || 0;
+      let maxDuration = 1; // Default to 1 month
+      let amountPaid = data.amountPaid || 0;
+
+      const planDetails = plans.map(plan => {
+        // Use discounted price if available, otherwise use regular price
+        const effectivePrice = plan.discountedPrice !== null ? plan.discountedPrice : plan.price;
+
+        // Calculate amount for this plan (effective price * duration in months)
+        const planAmount = effectivePrice * plan.months;
+
+        // Track maximum duration for due date calculation
+        if (plan.months > maxDuration) {
+          maxDuration = plan.months;
+        }
+
+        totalAmount += planAmount;
+
+        return {
+          id: plan.id,
+          name: plan.name,
+          effectivePrice: effectivePrice,
+          months: plan.months,
+          amount: planAmount,
+        };
+      });
+
+      // Calculate due date (bill date + max plan duration in months)
+      const dueDate = new Date(data.billDate);
+      dueDate.setMonth(dueDate.getMonth() + maxDuration);
+
       // Generate unique bill number
       const billNumber = await this.generateBillNumber();
 
-      // Create the bill
+      // Create the bill with calculated amount and due date
       const bill = await tx.bill.create({
         data: {
           billNumber,
           customerId: data.customerId,
+          planId: data.planId,
           billDate: data.billDate,
-          dueDate: data.dueDate,
-          amount: data.amount,
+          paidAmount: data.amountPaid,
+          dueDate: dueDate,
+          amount: totalAmount,
           notes: data.notes || null,
           createdBy: data.generatedBy,
           generatedBy: data.generatedBy,
@@ -126,25 +247,27 @@ export class BillingService {
         },
       });
 
-      // Update customer's last bill date
+      // Update customer's last bill date and next bill date
       await tx.customer.update({
         where: { id: data.customerId },
         data: {
           lastBillDate: data.billDate,
-          nextBillDate: data.dueDate,
+          nextBillDate: dueDate,
         },
       });
 
       // Create a corresponding transaction record
       const transactionNumber = await this.generateTransactionNumber();
-      const transactionDescription = `Bill generated for customer - Amount: ${data.amount}`;
+      const transactionDescription = `Bill generated for customer - Amount: ${totalAmount}`;
 
       const transaction = await tx.transaction.create({
         data: {
           transactionNumber,
           customerId: data.customerId,
           type: 'BILL_GENERATED',
-          amount: data.amount,
+          amount: totalAmount,
+          amountPaid: amountPaid,
+          dueAmount: totalAmount - amountPaid,
           description: transactionDescription,
           transactionDate: new Date(),
           status: 'COMPLETED',
@@ -155,87 +278,6 @@ export class BillingService {
 
       return {
         bill: this.mapToBillResponse(bill),
-        transaction: this.mapToTransactionResponse(transaction),
-      };
-    });
-
-    return result;
-  }
-
-  /**
-   * Create a payment
-   */
-  public async createPayment(
-    data: CreatePaymentData
-  ): Promise<{ payment: PaymentResponse; transaction: TransactionResponse }> {
-    // Start a transaction to ensure data consistency
-    const result = await prisma.$transaction(async tx => {
-      // Generate unique payment number
-      const paymentNumber = await this.generatePaymentNumber();
-
-      // Create the payment
-      const payment = await tx.payment.create({
-        data: {
-          paymentNumber,
-          customerId: data.customerId,
-          amount: data.amount,
-          paymentMethod: data.paymentMethod,
-          paymentSource: data.paymentSource,
-          paymentDate: data.paymentDate,
-          billId: data.billId || null,
-          collectedBy: data.collectedBy || null,
-          notes: data.notes || null,
-          isReceiptGenerated: false,
-          status: 'COMPLETED',
-        },
-      });
-
-      // If payment is for a specific bill, update bill status
-      if (data.billId) {
-        const bill = await tx.bill.findUnique({
-          where: { id: data.billId },
-        });
-
-        if (bill) {
-          // Calculate if bill is fully paid
-          const existingPayments = await tx.payment.findMany({
-            where: { billId: data.billId },
-          });
-
-          const totalPaid = existingPayments.reduce((sum, p) => sum + p.amount, 0) + data.amount;
-          const isFullyPaid = totalPaid >= bill.amount;
-
-          await tx.bill.update({
-            where: { id: data.billId },
-            data: {
-              paidAt: isFullyPaid ? new Date() : bill.paidAt,
-              paidAmount: totalPaid,
-              status: isFullyPaid ? 'PAID' : 'PARTIAL',
-            },
-          });
-        }
-      }
-
-      // Create a corresponding transaction record
-      const transactionNumber = await this.generateTransactionNumber();
-      const transactionDescription = `Payment received from customer - Amount: ${data.amount}, Method: ${data.paymentMethod}`;
-
-      const transaction = await tx.transaction.create({
-        data: {
-          transactionNumber,
-          customerId: data.customerId,
-          type: 'PAYMENT_RECEIVED',
-          amount: data.amount,
-          description: transactionDescription,
-          transactionDate: new Date(),
-          status: 'COMPLETED',
-          performedBy: data.collectedBy || null,
-          relatedPaymentId: payment.id,
-        },
-      });
-
-      return {
-        payment: this.mapToPaymentResponse(payment),
         transaction: this.mapToTransactionResponse(transaction),
       };
     });
@@ -344,29 +386,6 @@ export class BillingService {
   }
 
   /**
-   * Get all payments for a customer
-   */
-  public async getPaymentsByCustomer(customerId: string): Promise<PaymentResponse[]> {
-    const payments = await prisma.payment.findMany({
-      where: { customerId },
-      orderBy: { paymentDate: 'desc' },
-    });
-
-    return payments.map(this.mapToPaymentResponse);
-  }
-
-  /**
-   * Get payment by ID
-   */
-  public async getPaymentById(id: string): Promise<PaymentResponse | null> {
-    const payment = await prisma.payment.findUnique({
-      where: { id },
-    });
-
-    return payment ? this.mapToPaymentResponse(payment) : null;
-  }
-
-  /**
    * Get all due settlements for a customer
    */
   public async getDueSettlementsByCustomer(customerId: string): Promise<DueSettlementResponse[]> {
@@ -411,30 +430,6 @@ export class BillingService {
     }
 
     return billNumber;
-  }
-
-  /**
-   * Generate unique payment number
-   */
-  private async generatePaymentNumber(): Promise<string> {
-    const prefix = 'PYMT';
-    const timestamp = Date.now().toString().slice(-8); // Last 8 digits of timestamp
-    const random = Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, '0');
-    const paymentNumber = `${prefix}${timestamp}${random}`;
-
-    // Check if the generated number already exists
-    const existing = await prisma.payment.findUnique({
-      where: { paymentNumber },
-    });
-
-    if (existing) {
-      // Generate a new one recursively if it exists
-      return this.generatePaymentNumber();
-    }
-
-    return paymentNumber;
   }
 
   /**
@@ -485,28 +480,6 @@ export class BillingService {
   }
 
   /**
-   * Map database payment to response format
-   */
-  private mapToPaymentResponse(payment: Payment): PaymentResponse {
-    return {
-      id: payment.id,
-      paymentNumber: payment.paymentNumber,
-      customerId: payment.customerId,
-      billId: payment.billId,
-      amount: parseFloat(payment.amount.toString()),
-      paymentMethod: payment.paymentMethod,
-      paymentDate: payment.paymentDate,
-      status: payment.status,
-      notes: payment.notes,
-      createdAt: payment.createdAt,
-      updatedAt: payment.updatedAt,
-      paymentSource: payment.paymentSource,
-      collectedBy: payment.collectedBy,
-      isReceiptGenerated: payment.isReceiptGenerated,
-    };
-  }
-
-  /**
    * Map database due settlement to response format
    */
   private mapToDueSettlementResponse(dueSettlement: DueSettlement): DueSettlementResponse {
@@ -545,7 +518,6 @@ export class BillingService {
       updatedAt: transaction.updatedAt,
       performedBy: transaction.performedBy,
       relatedBillId: transaction.relatedBillId,
-      relatedPaymentId: transaction.relatedPaymentId,
       relatedDueSettlementId: transaction.relatedDueSettlementId,
       relatedActionId: transaction.relatedActionId,
     };

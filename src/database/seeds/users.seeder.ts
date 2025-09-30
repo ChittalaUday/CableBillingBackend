@@ -147,7 +147,6 @@ export async function clearUsers(): Promise<void> {
     data: { assignedTo: null },
   });
   await prisma.dueSettlement.deleteMany();
-  await prisma.payment.deleteMany();
   await prisma.bill.deleteMany();
   await prisma.transaction.deleteMany();
   await prisma.customer.deleteMany();

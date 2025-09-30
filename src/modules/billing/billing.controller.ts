@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { BillingService } from './billing.service';
 import { AuthenticatedRequest } from '@/middleware/auth.middleware';
 import { ResponseUtil } from '@/utils/response.util';
-import Joi from 'joi';
+import Joi, { string } from 'joi';
 
 // Validation schemas
 const createBillSchema = Joi.object({
@@ -10,43 +10,21 @@ const createBillSchema = Joi.object({
     'any.required': 'Customer ID is required',
     'string.empty': 'Customer ID cannot be empty',
   }),
-  amount: Joi.number().positive().required().messages({
-    'any.required': 'Amount is required',
-    'number.positive': 'Amount must be positive',
+
+  paidAt: Joi.date().max('now').optional().messages({
+    'date.max': 'Installation date cannot be in the future',
   }),
+  planId: Joi.array().items(Joi.string()).required().messages({
+    'any.required': 'Plan ID is required',
+    'array.empty': 'Plan ID cannot be empty',
+    'array.base': 'Plan ID must be an array',
+    'array.includes': 'Plan ID must be an array of valid plan ID strings',
+  }),
+  amountPaid: Joi.number().positive().optional(), // Make amount optional
   billDate: Joi.date().max('now').required().messages({
     'any.required': 'Bill date is required',
     'date.max': 'Bill date cannot be in the future',
   }),
-  dueDate: Joi.date().min(Joi.ref('billDate')).required().messages({
-    'any.required': 'Due date is required',
-    'date.min': 'Due date must be after bill date',
-  }),
-  notes: Joi.string().optional().allow(''),
-});
-
-const createPaymentSchema = Joi.object({
-  customerId: Joi.string().required().messages({
-    'any.required': 'Customer ID is required',
-    'string.empty': 'Customer ID cannot be empty',
-  }),
-  amount: Joi.number().positive().required().messages({
-    'any.required': 'Amount is required',
-    'number.positive': 'Amount must be positive',
-  }),
-  paymentMethod: Joi.string().required().messages({
-    'any.required': 'Payment method is required',
-  }),
-  paymentSource: Joi.string().valid('CASH', 'ONLINE', 'CHEQUE', 'CARD').required().messages({
-    'any.required': 'Payment source is required',
-    'any.only': 'Payment source must be one of: CASH, ONLINE, CHEQUE, CARD',
-  }),
-  paymentDate: Joi.date().max('now').required().messages({
-    'any.required': 'Payment date is required',
-    'date.max': 'Payment date cannot be in the future',
-  }),
-  billId: Joi.string().optional(),
-  collectedBy: Joi.string().optional(),
   notes: Joi.string().optional().allow(''),
 });
 
@@ -80,12 +58,54 @@ const billingIdParamSchema = Joi.object({
   }),
 });
 
+const calculateBillingSchema = Joi.object({
+  customerId: Joi.string().required().messages({
+    'any.required': 'Customer ID is required',
+    'string.empty': 'Customer ID cannot be empty',
+  }),
+  planIds: Joi.array().items(Joi.string()).required().messages({
+    'any.required': 'Plan IDs are required',
+    'array.empty': 'Plan IDs cannot be empty',
+    'array.base': 'Plan IDs must be an array',
+    'array.includes': 'Plan IDs must be an array of valid plan ID strings',
+  }),
+  amountPaid: Joi.number().min(0).optional(),
+});
+
 export class BillingController {
   private billingService: BillingService;
 
   constructor() {
     this.billingService = new BillingService();
   }
+
+  /**
+   * Calculate billing information (temporary calculation, no database changes)
+   */
+  public calculateBilling = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      // Validate request body
+      const { error, value } = calculateBillingSchema.validate(req.body);
+      if (error) {
+        ResponseUtil.badRequest(res, 'Validation failed', error.details);
+        return;
+      }
+
+      // Calculate billing
+      const result = await this.billingService.calculateBilling(value);
+
+      ResponseUtil.success(res, result, 'Billing calculation completed successfully');
+    } catch (error: any) {
+      console.error('Calculate billing error:', error);
+
+      if (error.message.includes('not found')) {
+        ResponseUtil.notFound(res, error.message);
+        return;
+      }
+
+      ResponseUtil.error(res, 'Failed to calculate billing', error.message);
+    }
+  };
 
   /**
    * Create a new bill (Staff and above)
@@ -99,6 +119,8 @@ export class BillingController {
         return;
       }
 
+      // For backward compatibility, we still accept amount in the request but don't use it
+      // The amount will be calculated based on the plans in the service
       const billData = {
         ...value,
         generatedBy: req.user.id,
@@ -117,39 +139,6 @@ export class BillingController {
       }
 
       ResponseUtil.error(res, 'Failed to create bill', error.message);
-    }
-  };
-
-  /**
-   * Create a payment (Staff and above)
-   */
-  public createPayment = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      // Validate request body
-      const { error, value } = createPaymentSchema.validate(req.body);
-      if (error) {
-        ResponseUtil.badRequest(res, 'Validation failed', error.details);
-        return;
-      }
-
-      const paymentData = {
-        ...value,
-        collectedBy: req.user.id,
-      };
-
-      // Create payment
-      const result = await this.billingService.createPayment(paymentData);
-
-      ResponseUtil.success(res, result, 'Payment created successfully', 201);
-    } catch (error: any) {
-      console.error('Create payment error:', error);
-
-      if (error.message.includes('not found')) {
-        ResponseUtil.notFound(res, error.message);
-        return;
-      }
-
-      ResponseUtil.error(res, 'Failed to create payment', error.message);
     }
   };
 
@@ -243,66 +232,6 @@ export class BillingController {
     } catch (error: any) {
       console.error('Get bill by ID error:', error);
       ResponseUtil.error(res, 'Failed to retrieve bill', error.message);
-    }
-  };
-
-  /**
-   * Get all payments for a customer (Staff and above or customer themselves)
-   */
-  public getPaymentsByCustomer = async (req: any, res: Response): Promise<void> => {
-    try {
-      // For customers, use their own ID; for staff, use the provided customerId
-      let customerId: string;
-
-      if (req.customer) {
-        // Customer accessing their own data
-        customerId = req.customer.id;
-      } else if (req.user && ['ADMIN', 'MANAGER', 'STAFF', 'TECHNICIAN'].includes(req.user.role)) {
-        // Staff accessing customer data - validate the provided customerId
-        const { error, value } = customerIdParamSchema.validate(req.params);
-        if (error) {
-          ResponseUtil.badRequest(res, 'Invalid customer ID', error.details);
-          return;
-        }
-        customerId = value.customerId;
-      } else {
-        ResponseUtil.forbidden(res, 'Access denied');
-        return;
-      }
-
-      const payments = await this.billingService.getPaymentsByCustomer(customerId);
-      ResponseUtil.success(res, payments, 'Payments retrieved successfully');
-    } catch (error: any) {
-      console.error('Get payments error:', error);
-      ResponseUtil.error(res, 'Failed to retrieve payments', error.message);
-    }
-  };
-
-  /**
-   * Get payment by ID (Staff and above)
-   */
-  public getPaymentById = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-    try {
-      // Validate parameters
-      const { error, value } = billingIdParamSchema.validate(req.params);
-      if (error) {
-        ResponseUtil.badRequest(res, 'Invalid payment ID', error.details);
-        return;
-      }
-
-      const { id } = value;
-
-      const payment = await this.billingService.getPaymentById(id);
-
-      if (!payment) {
-        ResponseUtil.notFound(res, 'Payment not found');
-        return;
-      }
-
-      ResponseUtil.success(res, payment, 'Payment retrieved successfully');
-    } catch (error: any) {
-      console.error('Get payment by ID error:', error);
-      ResponseUtil.error(res, 'Failed to retrieve payment', error.message);
     }
   };
 

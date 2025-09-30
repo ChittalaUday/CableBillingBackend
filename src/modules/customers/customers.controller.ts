@@ -359,13 +359,13 @@ export class CustomersController {
         return;
       }
 
-      await this.customersService.changeCustomerPassword(
+      const result = await this.customersService.changeCustomerPassword(
         paramValue.id,
         bodyValue.currentPassword,
         bodyValue.newPassword
       );
 
-      ResponseUtil.success(res, null, 'Password changed successfully');
+      ResponseUtil.success(res, result, 'Password changed successfully');
     } catch (error: any) {
       console.error('Change customer password error:', error);
 

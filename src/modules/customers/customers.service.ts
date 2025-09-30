@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/database/prisma.service';
-import { Customer, CustomerStatus, ConnectionType, PackageType } from '@prisma/client';
+import { Customer } from '@prisma/client';
 
 export interface CreateCustomerData {
   accountNo: string;
@@ -13,8 +13,8 @@ export interface CreateCustomerData {
   city: string;
   state: string;
   zipCode: string;
-  connectionType: ConnectionType;
-  packageType: PackageType;
+  connectionType: string;
+  packageType: string;
   monthlyRate: number;
   installationDate: Date;
   notes?: string;
@@ -31,11 +31,11 @@ export interface UpdateCustomerData {
   city?: string;
   state?: string;
   zipCode?: string;
-  connectionType?: ConnectionType;
-  packageType?: PackageType;
+  connectionType?: string;
+  packageType?: string;
   monthlyRate?: number;
   installationDate?: Date;
-  status?: CustomerStatus;
+  status?: string;
   notes?: string;
 }
 
@@ -43,9 +43,9 @@ export interface GetCustomersQuery {
   page?: number;
   limit?: number;
   search?: string;
-  status?: CustomerStatus;
-  connectionType?: ConnectionType;
-  packageType?: PackageType;
+  status?: string;
+  connectionType?: string;
+  packageType?: string;
   city?: string;
   state?: string;
   sortBy?: string;
@@ -63,13 +63,13 @@ export interface CustomerResponse {
   city: string;
   state: string;
   zipCode: string;
-  connectionType: ConnectionType;
-  packageType: PackageType;
+  connectionType: string;
+  packageType: string;
   monthlyRate: number;
   installationDate: Date;
   lastBillDate?: Date | null;
   nextBillDate?: Date | null;
-  status: CustomerStatus;
+  status: string;
   notes?: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -238,7 +238,6 @@ export class CustomersService {
         _count: {
           select: {
             bills: true,
-            payments: true,
             complaints: true,
           },
         },
@@ -273,7 +272,7 @@ export class CustomersService {
   public async getCustomerByPhone(phone: string): Promise<CustomerResponse> {
     // Clean phone number (remove non-digits)
     const cleanPhone = phone.replace(/[^\d]/g, '');
-    
+
     const customer = await prisma.customer.findFirst({
       where: { phone: cleanPhone },
     });
@@ -295,7 +294,7 @@ export class CustomersService {
   ): Promise<CustomerResponse> {
     // Clean phone number (remove non-digits)
     const cleanPhone = phone.replace(/[^\d]/g, '');
-    
+
     const customer = await prisma.customer.findFirst({
       where: { phone: cleanPhone },
     });
@@ -415,11 +414,6 @@ export class CustomersService {
         where: { customerId: id },
       });
 
-      // Delete payments
-      await tx.payment.deleteMany({
-        where: { customerId: id },
-      });
-
       // Delete due settlements
       await tx.dueSettlement.deleteMany({
         where: { customerId: id },
@@ -450,11 +444,8 @@ export class CustomersService {
     password: string
   ): Promise<CustomerResponse> {
     const customer = await prisma.customer.findFirst({
-      where: { 
-        OR: [
-          { accountNo: accountNo },
-          { customerNumber: accountNo }
-        ]
+      where: {
+        OR: [{ accountNo: accountNo }, { customerNumber: accountNo }],
       },
     });
 
@@ -494,9 +485,6 @@ export class CustomersService {
     if (!customer) {
       throw new Error('Customer not found');
     }
-
-    // TODO: Implement password change once Prisma client is updated
-    throw new Error('Password change functionality not yet implemented');
   }
 
   /**

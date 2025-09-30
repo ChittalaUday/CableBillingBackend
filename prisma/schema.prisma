@@ -7,8 +7,9 @@ generator client {
 
 // Primary: PostgreSQL for production, SQLite for development
 datasource db {
-  provider = "postgresql"
-  url      = env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -35,7 +36,6 @@ model User {
   createdReports        Report[]        @relation("ReportCreatedBy")
   auditLogs             AuditLog[]      @relation("AuditLogUser")
   generatedBills        Bill[]          @relation("BillGeneratedBy")
-  collectedPayments     Payment[]       @relation("PaymentCollectedBy")
   settledDues           DueSettlement[] @relation("DueSettlementSettledBy")
   serviceActions        BoxActivation[] @relation("ServiceActionPerformedBy")
   performedTransactions Transaction[]   @relation("TransactionPerformedBy")
@@ -68,6 +68,7 @@ model Customer {
   nextBillDate     DateTime?
   status           String    @default("ACTIVE")
   msoShareDue      Float?
+  balance          Float     @default(0.0)
   notes            String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -83,7 +84,6 @@ model Customer {
   creator        User                   @relation("CustomerCreatedBy", fields: [createdBy], references: [id])
   updater        User?                  @relation("CustomerUpdatedBy", fields: [updatedBy], references: [id])
   bills          Bill[]                 @relation("CustomerBills")
-  payments       Payment[]              @relation("CustomerPayments")
   dueSettlements DueSettlement[]        @relation("CustomerDueSettlements")
   complaints     Complaint[]            @relation("CustomerComplaints")
   transactions   Transaction[]          @relation("CustomerTransactions")
@@ -94,13 +94,14 @@ model Customer {
 }
 
 model Bill {
-  id         String   @id @default(cuid())
-  billNumber String   @unique
+  id         String @id @default(cuid())
+  billNumber String @unique
   customerId String
-  billDate   DateTime
-  dueDate    DateTime
-  amount     Float
 
+  billDate                DateTime
+  dueDate                 DateTime
+  amount                  Float
+  planId                  String[]  @default([])
   status                  String    @default("PENDING")
   paidAt                  DateTime?
   paidAmount              Float?
@@ -115,37 +116,10 @@ model Bill {
   customer       Customer        @relation("CustomerBills", fields: [customerId], references: [id])
   creator        User            @relation("BillCreatedBy", fields: [createdBy], references: [id])
   generator      User            @relation("BillGeneratedBy", fields: [generatedBy], references: [id])
-  payments       Payment[]       @relation("BillPayments")
   dueSettlements DueSettlement[] @relation("BillDueSettlements")
   transactions   Transaction[]   @relation("TransactionBill")
 
   @@map("bills")
-}
-
-model Payment {
-  id                 String   @id @default(cuid())
-  paymentNumber      String   @unique
-  customerId         String
-  billId             String?
-  amount             Float
-  paymentMethod      String
-  paymentDate        DateTime
-  transactionId      String?  @unique
-  status             String   @default("COMPLETED")
-  notes              String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  paymentSource      String // "CASH", "ONLINE", "CHEQUE", etc.
-  collectedBy        String? // Staff who collected payment
-  isReceiptGenerated Boolean  @default(false) // Physical receipt generated
-
-  // Relations
-  customer    Customer     @relation("CustomerPayments", fields: [customerId], references: [id])
-  bill        Bill?        @relation("BillPayments", fields: [billId], references: [id])
-  collector   User?        @relation("PaymentCollectedBy", fields: [collectedBy], references: [id])
-  transaction Transaction? @relation("TransactionPayment")
-
-  @@map("payments")
 }
 
 model DueSettlement {
@@ -175,8 +149,10 @@ model Transaction {
   id                String   @id @default(cuid())
   transactionNumber String   @unique
   customerId        String
-  type              String // "BILL_GENERATED", "PAYMENT_RECEIVED", "DUE_SETTLED", "BOX_ACTIVATED", etc.
+  type              String // "BILL_GENERATED", "DUE_SETTLED", "BOX_ACTIVATED", etc.
   amount            Float
+  amountPaid        Float?
+  dueAmount         Float?
   description       String
   transactionDate   DateTime
   status            String   @default("COMPLETED")
@@ -188,7 +164,6 @@ model Transaction {
 
   // Optional relations to other entities
   relatedBillId          String?
-  relatedPaymentId       String? @unique
   relatedDueSettlementId String? @unique
   relatedActionId        String? @unique
 
@@ -196,7 +171,6 @@ model Transaction {
   customer             Customer       @relation("CustomerTransactions", fields: [customerId], references: [id])
   performer            User?          @relation("TransactionPerformedBy", fields: [performedBy], references: [id])
   relatedBill          Bill?          @relation("TransactionBill", fields: [relatedBillId], references: [id])
-  relatedPayment       Payment?       @relation("TransactionPayment", fields: [relatedPaymentId], references: [id])
   relatedDueSettlement DueSettlement? @relation("TransactionDueSettlement", fields: [relatedDueSettlementId], references: [id])
   relatedAction        BoxActivation? @relation("TransactionServiceAction", fields: [relatedActionId], references: [id])
 
@@ -270,6 +244,8 @@ model Plan {
   price           Float
   discountedPrice Float?
   channels        String?
+  category        String?
+  duration        String?
   packageDetails  String?
   months          Int      @default(1)
   isPriority      Boolean  @default(false)

@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/database/prisma.service';
 import config from '@/config';
-import { User, UserRole, Prisma } from '@prisma/client';
+import { User, Prisma } from '@prisma/client';
 
 export interface CreateUserData {
   email: string;
@@ -10,7 +10,7 @@ export interface CreateUserData {
   firstName: string;
   lastName: string;
   phone?: string;
-  role?: UserRole;
+  role?: string;
 }
 
 export interface UpdateUserData {
@@ -20,7 +20,7 @@ export interface UpdateUserData {
   lastName?: string;
   phone?: string;
   avatar?: string;
-  role?: UserRole;
+  role?: string;
   isActive?: boolean;
   isVerified?: boolean;
 }
@@ -29,7 +29,7 @@ export interface GetUsersQuery {
   page?: number;
   limit?: number;
   search?: string;
-  role?: UserRole;
+  role?: string;
   isActive?: boolean;
   isVerified?: boolean;
   sortBy?: string;
@@ -44,7 +44,7 @@ export interface UserResponse {
   lastName: string;
   phone?: string | null;
   avatar?: string | null;
-  role: UserRole;
+  role: string;
   isActive: boolean;
   isVerified: boolean;
   lastLoginAt?: Date | null;
@@ -335,12 +335,8 @@ export class UsersService {
         data: { assignedTo: null },
       });
 
-      // Delete transactions, payments, bills created by this user
+      // Delete transactions, bills created by this user
       await tx.transaction.deleteMany({
-        where: { customer: { createdBy: id } },
-      });
-
-      await tx.payment.deleteMany({
         where: { customer: { createdBy: id } },
       });
 

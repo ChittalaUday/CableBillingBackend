@@ -6,15 +6,15 @@ import csv from 'csv-parser';
 const prisma = new PrismaClient();
 
 interface PlanData {
-  category: string;
-  name: string;
-  price: string;
-  duration: string;
+  Category: string;
+  Name: string;
+  Price: string;
+  Duration: string;
 }
 
 export async function cleanPlans() {
   console.log('Cleaning existing plans...');
-  
+
   try {
     // Delete all existing plans
     const deletedPlans = await prisma.plan.deleteMany();
@@ -26,7 +26,7 @@ export async function cleanPlans() {
 
 export async function clearPlans(): Promise<void> {
   console.log('🗑️ Clearing existing plans...');
-  
+
   try {
     // Delete all existing plans
     const deletedPlans = await prisma.plan.deleteMany();
@@ -56,7 +56,7 @@ export async function seedPlans() {
         .pipe(csv())
         .on('data', (data: any) => {
           // Skip empty rows
-          if (data.category && data.name && data.price) {
+          if (data.Category && data.Name && data.Price) {
             plans.push(data);
           }
         })
@@ -73,13 +73,13 @@ export async function seedPlans() {
     for (const planData of plans) {
       try {
         // Skip empty or invalid rows
-        if (!planData.category || !planData.name || !planData.price) {
+        if (!planData.Category || !planData.Name || !planData.Price) {
           skippedCount++;
           continue;
         }
 
         // Clean up price (remove ₹ symbol and convert to number)
-        const cleanPrice = parseFloat(planData.price.replace('₹', '').trim());
+        const cleanPrice = parseFloat(planData.Price.replace('₹', '').trim());
 
         // Skip if price is not a valid number
         if (isNaN(cleanPrice)) {
@@ -90,32 +90,38 @@ export async function seedPlans() {
         // Determine plan type based on category (highest priority)
         let planType: string = 'BASIC'; // Default to BASIC
 
-        if (planData.category.includes('DPO Packages')) {
+        if (
+          planData.Category.includes('DDO Package') ||
+          planData.Category.includes('DPO Packages')
+        ) {
           planType = 'PREMIUM';
-        } else if (planData.category.includes('AlaCarte Packages')) {
+        } else if (planData.Category.includes('AlaCarte Packages')) {
           planType = 'STANDARD';
-        } else if (planData.category.includes('Broadcaster Packages')) {
+        } else if (planData.Category.includes('Broadcaster Packages')) {
           planType = 'BASIC';
         }
 
+        // Parse duration as number
+        const durationInMonths = parseInt(planData.Duration, 10);
+        // If parsing fails, default to 1 month
+        const validDuration = isNaN(durationInMonths) ? 1 : durationInMonths;
+
         // Check if plan already exists
         const existingPlan = await prisma.plan.findUnique({
-          where: { name: planData.name },
+          where: { name: planData.Name },
         });
 
         if (existingPlan) {
           // If plan exists, update it with the correct type based on category
           await prisma.plan.update({
-            where: { name: planData.name },
+            where: { name: planData.Name },
             data: {
               type: planType.toString(),
-              description: `${planData.category} - ${planData.duration}`,
+              description: `${planData.Category} - ${validDuration} month(s)`,
               price: cleanPrice,
-              // Store only duration and category instead of the entire object
-              packageDetails: JSON.stringify({
-                duration: planData.duration,
-                category: planData.category
-              }),
+              category: planData.Category,
+              duration: planData.Duration, // Store original duration string
+              months: validDuration, // Store parsed duration as number
               updatedAt: new Date(),
             },
           });
@@ -123,48 +129,22 @@ export async function seedPlans() {
           continue;
         }
 
-        // Determine months from name pattern by splitting on underscores
-        let months = 1; // Default to 1 month
-
-        // Look for month indicators in the name parts
-        const nameParts = planData.name.split('_');
-        for (const part of nameParts) {
-          if (part.match(/^\d+$/)) {
-            // Check if part is a number
-            const num = parseInt(part, 10);
-            if (num === 1 || num === 3 || num === 6 || num === 12) {
-              months = num;
-              break;
-            }
-          } else if (part.includes('MONTHS')) {
-            // Handle patterns like "03_MONTHS"
-            const monthMatch = part.match(/(\d+)_MONTHS/i);
-            if (monthMatch && monthMatch[1]) {
-              months = parseInt(monthMatch[1], 10);
-              break;
-            }
-          }
-        }
-
         // Determine if it's a priority package
         const isPriority =
-          planData.category.includes('DPO Packages') &&
-          (planData.name.includes('SUPREME') || planData.name.includes('SMART'));
+          planData.Category.includes('DDO Package') &&
+          (planData.Name.includes('SUPREME') || planData.Name.includes('SMART'));
 
         // Create plan
         await prisma.plan.create({
           data: {
-            name: planData.name,
-            description: `${planData.category} - ${planData.duration}`,
+            name: planData.Name,
+            description: `${planData.Category} - ${validDuration} month(s)`,
             type: planType.toString(),
             price: cleanPrice,
-            channels: JSON.stringify([planData.name]), // For now, just use the plan name as a channel
-            // Store only duration and category instead of the entire object
-            packageDetails: JSON.stringify({
-              duration: planData.duration,
-              category: planData.category
-            }),
-            months: months,
+            channels: JSON.stringify([planData.Name]), // For now, just use the plan name as a channel
+            category: planData.Category,
+            duration: planData.Duration, // Store original duration string
+            months: validDuration, // Store parsed duration as number
             isPriority: isPriority,
             isActive: true,
           },
@@ -172,7 +152,7 @@ export async function seedPlans() {
 
         createdCount++;
       } catch (error) {
-        console.error(`Error processing plan ${planData.name}:`, error);
+        console.error(`Error processing plan ${planData.Name}:`, error);
         skippedCount++;
       }
     }

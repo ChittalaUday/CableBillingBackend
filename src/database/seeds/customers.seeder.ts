@@ -23,7 +23,16 @@ interface CustomerCSVData {
 
 export class CustomersSeeder {
   private readonly DEFAULT_PASSWORD = 'customer123';
-  private readonly CSV_FILE_PATH = path.join(__dirname, '..', '..', '..', 'src', 'database', 'seeds', 'customer_data.csv');
+  private readonly CSV_FILE_PATH = path.join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    'src',
+    'database',
+    'seeds',
+    'customer_data.csv'
+  );
 
   /**
    * Parse CSV data and create customers
@@ -34,7 +43,7 @@ export class CustomersSeeder {
 
       // Read and parse CSV file
       const csvData = await this.parseCSVFile();
-      
+
       // Get admin user as creator
       const adminUser = await this.getAdminUser();
 
@@ -50,7 +59,7 @@ export class CustomersSeeder {
         try {
           await this.createOrUpdateCustomer(customerData, hashedPassword, adminUser.id);
           successCount++;
-          
+
           if (successCount % 10 === 0) {
             Logger.info(`Processed ${successCount} customers...`);
           }
@@ -61,11 +70,10 @@ export class CustomersSeeder {
       }
 
       Logger.info(`Customer seeding completed. Success: ${successCount}, Errors: ${errorCount}`);
-      
+
       if (successCount > 0) {
         Logger.info(`Default password for all customers: ${this.DEFAULT_PASSWORD}`);
       }
-
     } catch (error) {
       Logger.error('Customer seeding failed:', error);
       throw error;
@@ -80,9 +88,8 @@ export class CustomersSeeder {
       Logger.info('Clearing customers...');
 
       // Delete related records first to handle foreign key constraints
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async tx => {
         await tx.transaction.deleteMany();
-        await tx.payment.deleteMany();
         await tx.dueSettlement.deleteMany();
         await tx.complaint.deleteMany();
         await tx.bill.deleteMany();
@@ -102,16 +109,16 @@ export class CustomersSeeder {
   private async parseCSVFile(): Promise<CustomerCSVData[]> {
     const csvContent = fs.readFileSync(this.CSV_FILE_PATH, 'utf-8');
     const lines = csvContent.split('\n').filter(line => line.trim());
-    
+
     // Skip header line
     const dataLines = lines.slice(1);
-    
+
     const customers: CustomerCSVData[] = [];
 
     for (const line of dataLines) {
       // Handle CSV parsing with quoted fields that may contain commas
       const fields = this.parseCSVLine(line);
-      
+
       if (fields.length >= 12) {
         customers.push({
           sno: fields[0]?.trim() || '',
@@ -125,7 +132,7 @@ export class CustomersSeeder {
           mobileNo: fields[8]?.trim() || '',
           package: fields[9]?.trim() || '',
           status: fields[10]?.trim() || '',
-          msoShareDue: fields[11]?.trim() || '0'
+          msoShareDue: fields[11]?.trim() || '0',
         });
       }
     }
@@ -140,10 +147,10 @@ export class CustomersSeeder {
     const fields: string[] = [];
     let current = '';
     let inQuotes = false;
-    
+
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
-      
+
       if (char === '"') {
         inQuotes = !inQuotes;
       } else if (char === ',' && !inQuotes) {
@@ -153,7 +160,7 @@ export class CustomersSeeder {
         current += char;
       }
     }
-    
+
     fields.push(current);
     return fields;
   }
@@ -162,8 +169,8 @@ export class CustomersSeeder {
    * Create a single customer from CSV data
    */
   private async createCustomer(
-    data: CustomerCSVData, 
-    hashedPassword: string, 
+    data: CustomerCSVData,
+    hashedPassword: string,
     createdBy: string
   ): Promise<void> {
     // Skip empty or invalid records
@@ -188,23 +195,23 @@ export class CustomersSeeder {
       if (data.createdDate && data.createdDate.trim()) {
         // Handle various date formats
         const dateStr = data.createdDate.trim();
-        
+
         // Try parsing DD/MM/YYYY or DD-MM-YYYY format
         const dateParts = dateStr.split(/[\/-]/);
         if (dateParts.length === 3) {
           const day = parseInt(dateParts[0] || '1');
           const month = parseInt(dateParts[1] || '1');
           let year = parseInt(dateParts[2] || '2024');
-          
+
           // If year is 2-digit, add 2000
           if (year < 100) {
             year = 2000 + year;
           }
-          
+
           // Validate date parts
           if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1900 && year <= 2030) {
             installationDate = new Date(year, month - 1, day);
-            
+
             // Check if the date is valid
             if (isNaN(installationDate.getTime())) {
               installationDate = new Date(); // Default to current date
@@ -227,14 +234,18 @@ export class CustomersSeeder {
     }
 
     // Determine customer status
-    const status = data.status.toLowerCase() === 'active' ? 'ACTIVE' : 
-                  data.status.toLowerCase() === 'deactive' ? 'SUSPENDED' : 'PENDING';
+    const status =
+      data.status.toLowerCase() === 'active'
+        ? 'ACTIVE'
+        : data.status.toLowerCase() === 'deactive'
+          ? 'SUSPENDED'
+          : 'PENDING';
 
     // Parse MSO Share Due
     const msoShareDue = parseFloat(data.msoShareDue) || 0;
 
     // Generate customer number if not provided
-    const customerNumber = data.accountNo || await this.generateCustomerNumber();
+    const customerNumber = data.accountNo || (await this.generateCustomerNumber());
 
     // Default values for missing required fields
     const connectionType = 'CABLE_TV'; // Default connection type
@@ -309,9 +320,9 @@ export class CustomersSeeder {
     if (!adminUser) {
       // Create a default admin user if none exists
       Logger.info('No admin user found, creating default admin user...');
-      
+
       const hashedPassword = await bcrypt.hash('admin123', 10);
-      
+
       adminUser = await prisma.user.create({
         data: {
           email: 'admin@cablemanagement.com',
@@ -326,7 +337,9 @@ export class CustomersSeeder {
         select: { id: true },
       });
 
-      Logger.info('Default admin user created with email: admin@cablemanagement.com and password: admin123');
+      Logger.info(
+        'Default admin user created with email: admin@cablemanagement.com and password: admin123'
+      );
     }
 
     return adminUser;
@@ -336,8 +349,8 @@ export class CustomersSeeder {
    * Create or update a single customer from CSV data
    */
   private async createOrUpdateCustomer(
-    data: CustomerCSVData, 
-    hashedPassword: string, 
+    data: CustomerCSVData,
+    hashedPassword: string,
     createdBy: string
   ): Promise<void> {
     // Skip empty or invalid records
@@ -361,17 +374,21 @@ export class CustomersSeeder {
     let finalPhoneNumber = cleanMobile;
     const existingPhoneRecord = await prisma.customer.findFirst({
       where: { phone: cleanMobile },
-      select: { id: true }
+      select: { id: true },
     });
-    
+
     if (existingPhoneRecord) {
       // Generate a unique temporary phone number for duplicates during seeding
       // Format: 9999XXXXXXX where X is random digits
       const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
-      const randomDigits = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      const randomDigits = Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, '0');
       finalPhoneNumber = `9999${timestamp}${randomDigits}`;
-      
-      Logger.warn(`Duplicate phone number ${cleanMobile} found for customer ${data.accountNo}, assigning temporary phone: ${finalPhoneNumber}`);
+
+      Logger.warn(
+        `Duplicate phone number ${cleanMobile} found for customer ${data.accountNo}, assigning temporary phone: ${finalPhoneNumber}`
+      );
     }
 
     // Parse installation date
@@ -380,23 +397,23 @@ export class CustomersSeeder {
       if (data.createdDate && data.createdDate.trim()) {
         // Handle various date formats
         const dateStr = data.createdDate.trim();
-        
+
         // Try parsing DD/MM/YYYY or DD-MM-YYYY format
         const dateParts = dateStr.split(/[\/\-]/);
         if (dateParts.length === 3) {
           const day = parseInt(dateParts[0] || '1');
           const month = parseInt(dateParts[1] || '1');
           let year = parseInt(dateParts[2] || '2024');
-          
+
           // If year is 2-digit, add 2000
           if (year < 100) {
             year = 2000 + year;
           }
-          
+
           // Validate date parts
           if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 1900 && year <= 2030) {
             installationDate = new Date(year, month - 1, day);
-            
+
             // Check if the date is valid
             if (isNaN(installationDate.getTime())) {
               installationDate = new Date(); // Default to current date
@@ -419,8 +436,12 @@ export class CustomersSeeder {
     }
 
     // Determine customer status
-    const status = data.status.toLowerCase() === 'active' ? 'ACTIVE' : 
-                  data.status.toLowerCase() === 'deactive' ? 'SUSPENDED' : 'PENDING';
+    const status =
+      data.status.toLowerCase() === 'active'
+        ? 'ACTIVE'
+        : data.status.toLowerCase() === 'deactive'
+          ? 'SUSPENDED'
+          : 'PENDING';
 
     // Parse MSO Share Due
     const msoShareDue = parseFloat(data.msoShareDue) || 0;
@@ -445,11 +466,8 @@ export class CustomersSeeder {
     // Check if customer already exists by accountNo or customerNumber (not by phone since we handle duplicates above)
     const existingCustomer = await prisma.customer.findFirst({
       where: {
-        OR: [
-          { accountNo: data.accountNo },
-          { customerNumber: data.accountNo }
-        ]
-      }
+        OR: [{ accountNo: data.accountNo }, { customerNumber: data.accountNo }],
+      },
     });
 
     const customerData = {
@@ -484,7 +502,7 @@ export class CustomersSeeder {
           // Only update password if customer doesn't have one
           password: existingCustomer.password || hashedPassword,
           updater: {
-            connect: { id: createdBy }
+            connect: { id: createdBy },
           },
         },
       });
@@ -496,7 +514,7 @@ export class CustomersSeeder {
           ...customerData,
           password: hashedPassword,
           creator: {
-            connect: { id: createdBy }
+            connect: { id: createdBy },
           },
         },
       });
@@ -509,7 +527,9 @@ export class CustomersSeeder {
    */
   private async generateCustomerNumber(): Promise<string> {
     const prefix = 'C';
-    const randomNumber = Math.floor(Math.random() * 10000000).toString().padStart(7, '0');
+    const randomNumber = Math.floor(Math.random() * 10000000)
+      .toString()
+      .padStart(7, '0');
     const customerNumber = `${prefix}${randomNumber}`;
 
     // Check if the generated number already exists

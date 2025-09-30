@@ -22,17 +22,6 @@ router.get('/bills', (req: any, res: any) => {
 });
 
 /**
- * @route GET /api/customer/billing/payments
- * @desc Get all payments for the authenticated customer
- * @access Customer only
- */
-router.get('/payments', (req: any, res: any) => {
-  // Inject the customer ID into the request params for the controller
-  req.params.customerId = req.customer.id;
-  return billingController.getPaymentsByCustomer(req as any, res);
-});
-
-/**
  * @route GET /api/customer/billing/due-settlements
  * @desc Get all due settlements for the authenticated customer
  * @access Customer only
