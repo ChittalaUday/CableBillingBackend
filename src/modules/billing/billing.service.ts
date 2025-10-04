@@ -285,81 +285,18 @@ export class BillingService {
     return result;
   }
 
-  /**
-   * Create a due settlement
-   */
-  public async createDueSettlement(
-    data: CreateDueSettlementData
-  ): Promise<{ dueSettlement: DueSettlementResponse; transaction: TransactionResponse }> {
-    // Start a transaction to ensure data consistency
-    const result = await prisma.$transaction(async tx => {
-      // Get the bill to determine original amount
-      const bill = await tx.bill.findUnique({
-        where: { id: data.billId },
-      });
-
-      if (!bill) {
-        throw new Error('Bill not found');
-      }
-
-      // Calculate remaining amount
-      const existingSettlements = await tx.dueSettlement.findMany({
-        where: { billId: data.billId },
-      });
-
-      const settledAmount = existingSettlements.reduce((sum, s) => sum + s.settledAmount, 0);
-      const remainingAmount = bill.amount - settledAmount - data.settledAmount;
-
-      // Create the due settlement
-      const dueSettlement = await tx.dueSettlement.create({
-        data: {
-          customerId: data.customerId,
-          billId: data.billId,
-          originalAmount: bill.amount,
-          settledAmount: data.settledAmount,
-          remainingAmount,
-          settlementDate: new Date(),
-          status: remainingAmount <= 0 ? 'SETTLED' : 'PARTIAL',
-          notes: data.notes || null,
-          settledBy: data.settledBy,
-        },
-      });
-
-      // Update bill status if fully settled
-      if (remainingAmount <= 0) {
-        await tx.bill.update({
-          where: { id: data.billId },
-          data: {
-            status: 'SETTLED',
-          },
-        });
-      }
-
-      // Create a corresponding transaction record
-      const transactionNumber = await this.generateTransactionNumber();
-      const transactionDescription = `Due settlement processed for customer - Amount: ${data.settledAmount}`;
-
-      const transaction = await tx.transaction.create({
-        data: {
-          transactionNumber,
-          customerId: data.customerId,
-          type: 'DUE_SETTLED',
-          amount: data.settledAmount,
-          description: transactionDescription,
-          transactionDate: new Date(),
-          status: 'COMPLETED',
-          performedBy: data.settledBy,
-          relatedDueSettlementId: dueSettlement.id,
-        },
-      });
-
-      return {
-        dueSettlement: this.mapToDueSettlementResponse(dueSettlement),
-        transaction: this.mapToTransactionResponse(transaction),
-      };
+  public async updateBill(data: { billId: string }, user: any): Promise<BillResponse> {
+    // Update the bill to mark the physical bill as generated
+    const updatedBill = await prisma.bill.update({
+      where: { id: data.billId },
+      data: {
+        status: 'Completed',
+        isPhysicalBillGenerated: true,
+        updatedAt: new Date(),
+      },
     });
 
-    return result;
+    return this.mapToBillResponse(updatedBill);
   }
 
   /**

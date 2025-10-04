@@ -14,6 +14,7 @@ router.use(authenticateJWT);
  * @route POST /api/billing/calculate
  * @desc Calculate billing information without making changes to the database
  * @access Staff and above
+ *
  */
 router.post('/calculate', staffAndAbove as any, billingController.calculateBilling as any);
 
@@ -25,12 +26,11 @@ router.post('/calculate', staffAndAbove as any, billingController.calculateBilli
 router.post('/bills', staffAndAbove as any, billingController.createBill as any);
 
 /**
- * @route POST /api/billing/due-settlements
- * @desc Create a new due settlement
+ * @route PUT /api/billing/bills/:id
+ * @desc Update the bill if isPhysicalBillGenerated is true
  * @access Staff and above
  */
-router.post('/due-settlements', staffAndAbove as any, billingController.createDueSettlement as any);
-
+router.put('/bills/:id', staffAndAbove as any, billingController.updateBill as any);
 /**
  * @route GET /api/billing/bills/customer/:customerId
  * @desc Get all bills for a customer

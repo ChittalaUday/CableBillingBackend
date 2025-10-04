@@ -28,20 +28,14 @@ const createBillSchema = Joi.object({
   notes: Joi.string().optional().allow(''),
 });
 
-const createDueSettlementSchema = Joi.object({
+const updateBillSchema = Joi.object({
   customerId: Joi.string().required().messages({
     'any.required': 'Customer ID is required',
     'string.empty': 'Customer ID cannot be empty',
   }),
-  billId: Joi.string().required().messages({
-    'any.required': 'Bill ID is required',
-    'string.empty': 'Bill ID cannot be empty',
-  }),
-  settledAmount: Joi.number().positive().required().messages({
-    'any.required': 'Settled amount is required',
-    'number.positive': 'Settled amount must be positive',
-  }),
-  notes: Joi.string().optional().allow(''),
+
+  billNumber: Joi.string().optional(),
+  // billId is now retrieved from URL parameters, not request body
 });
 
 const customerIdParamSchema = Joi.object({
@@ -143,35 +137,33 @@ export class BillingController {
   };
 
   /**
-   * Create a due settlement (Staff and above)
+   * Update a bill (Staff and above)
    */
-  public createDueSettlement = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  public updateBill = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-      // Validate request body
-      const { error, value } = createDueSettlementSchema.validate(req.body);
+      // Get bill ID from URL parameters
+      const { error: paramError, value: paramValue } = billingIdParamSchema.validate(req.params);
+      if (paramError) {
+        ResponseUtil.badRequest(res, 'Invalid bill ID', paramError.details);
+        return;
+      }
+
+      const { id: billId } = paramValue;
+
+      // Validate request body (if any)
+      const { error, value } = updateBillSchema.validate(req.body);
       if (error) {
         ResponseUtil.badRequest(res, 'Validation failed', error.details);
         return;
       }
 
-      const dueSettlementData = {
-        ...value,
-        settledBy: req.user.id,
-      };
+      // Update bill
+      const result = await this.billingService.updateBill({ billId, ...value }, req.user);
 
-      // Create due settlement
-      const result = await this.billingService.createDueSettlement(dueSettlementData);
-
-      ResponseUtil.success(res, result, 'Due settlement created successfully', 201);
+      ResponseUtil.success(res, result, 'Bill updated successfully');
     } catch (error: any) {
-      console.error('Create due settlement error:', error);
-
-      if (error.message.includes('not found')) {
-        ResponseUtil.notFound(res, error.message);
-        return;
-      }
-
-      ResponseUtil.error(res, 'Failed to create due settlement', error.message);
+      console.error('Update bill error:', error);
+      ResponseUtil.error(res, 'Failed to update bill', error.message);
     }
   };
 

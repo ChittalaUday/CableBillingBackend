@@ -60,6 +60,16 @@
       "key": "plan_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "bill_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "settlement_id",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -994,6 +1004,55 @@
       ]
     },
     {
+      "name": "💳 Customer Billing",
+      "item": [
+        {
+          "name": "Get My Bills",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/customer/billing/bills",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customer", "billing", "bills"]
+            }
+          }
+        },
+        {
+          "name": "Get My Due Settlements",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/customer/billing/due-settlements",
+              "host": ["{{base_url}}"],
+              "path": ["api", "customer", "billing", "due-settlements"]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "📝 Logs Management",
       "item": [
         {
@@ -1303,6 +1362,37 @@
       "name": "💰 Billing Management",
       "item": [
         {
+          "name": "Calculate Billing",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customer_id}}\",\n  \"planIds\": [\"{{plan_id}}\"],\n  \"amountPaid\": 0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/billing/calculate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "billing", "calculate"]
+            }
+          }
+        },
+        {
           "name": "Create Bill",
           "request": {
             "auth": {
@@ -1324,7 +1414,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerId\": \"{{customer_id}}\",\n  \"amount\": 150.00,\n  \"billDate\": \"2025-09-28T00:00:00.000Z\",\n  \"dueDate\": \"2025-10-28T00:00:00.000Z\",\n  \"notes\": \"Monthly bill for September\"\n}"
+              "raw": "{\n  \"customerId\": \"{{customer_id}}\",\n  \"planId\": [\"{{plan_id}}\"],\n  \"amountPaid\": 0,\n  \"billDate\": \"2025-09-28T00:00:00.000Z\",\n  \"dueDate\": \"2025-10-28T00:00:00.000Z\",\n  \"notes\": \"Monthly bill for September\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/billing/bills",
@@ -1334,7 +1424,7 @@
           }
         },
         {
-          "name": "Create Payment",
+          "name": "Update Bill - Mark Physical Bill Generated",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1346,52 +1436,17 @@
                 }
               ]
             },
-            "method": "POST",
+            "method": "PUT",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"customerId\": \"{{customer_id}}\",\n  \"amount\": 150.00,\n  \"paymentMethod\": \"CASH\",\n  \"paymentSource\": \"CASH\",\n  \"paymentDate\": \"2025-09-28T00:00:00.000Z\",\n  \"notes\": \"Payment for September bill\"\n}"
-            },
             "url": {
-              "raw": "{{base_url}}/api/billing/payments",
+              "raw": "{{base_url}}/api/billing/bills/{{bill_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "billing", "payments"]
-            }
-          }
-        },
-        {
-          "name": "Create Due Settlement",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"customerId\": \"{{customer_id}}\",\n  \"billId\": \"bill_id_here\",\n  \"settledAmount\": 50.00,\n  \"notes\": \"Partial settlement for outstanding bill\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/billing/due-settlements",
-              "host": ["{{base_url}}"],
-              "path": ["api", "billing", "due-settlements"]
+              "path": ["api", "billing", "bills", "{{bill_id}}"]
             }
           }
         },
@@ -1433,53 +1488,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/billing/bills/bill_id_here",
+              "raw": "{{base_url}}/api/billing/bills/{{bill_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "billing", "bills", "bill_id_here"]
-            }
-          }
-        },
-        {
-          "name": "Get Payments by Customer",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/billing/payments/customer/{{customer_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "billing", "payments", "customer", "{{customer_id}}"]
-            }
-          }
-        },
-        {
-          "name": "Get Payment by ID",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{access_token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/billing/payments/payment_id_here",
-              "host": ["{{base_url}}"],
-              "path": ["api", "billing", "payments", "payment_id_here"]
+              "path": ["api", "billing", "bills", "{{bill_id}}"]
             }
           }
         },
@@ -1521,9 +1532,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/billing/due-settlements/settlement_id_here",
+              "raw": "{{base_url}}/api/billing/due-settlements/{{settlement_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "billing", "due-settlements", "settlement_id_here"]
+              "path": ["api", "billing", "due-settlements", "{{settlement_id}}"]
             }
           }
         }
